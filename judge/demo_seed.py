@@ -112,6 +112,90 @@ STORIES: list[Story] = [
 ]  # fmt: skip
 
 
+# ---------------- The rest of the world: enough for every screen to have something real ----------------
+# Each city gets the scam mix it is known for, so the map, city sheets, stats and Explore all differ.
+CITY_TYPES = {
+    "Bengaluru": ["otp-call", "fake-kyc-link", "courier-customs", "job-offer", "investment-group",
+                  "fake-customer-care", "electricity-disconnection", "upi-refund-qr"],
+    "Mumbai": ["courier-customs", "digital-arrest", "investment-group", "fake-kyc-link"],
+    "Delhi": ["digital-arrest", "loan-app-harassment", "otp-call", "lottery-prize"],
+    "Hyderabad": ["investment-group", "job-offer", "upi-refund-qr"],
+    "Chennai": ["fake-kyc-link", "electricity-disconnection", "otp-call"],
+    "Pune": ["job-offer", "investment-group", "fake-customer-care"],
+    "Kolkata": ["lottery-prize", "otp-call", "loan-app-harassment"],
+    "Ahmedabad": ["investment-group", "upi-refund-qr", "courier-customs"],
+    "Jaipur": ["fake-kyc-link", "lottery-prize", "electricity-disconnection"],
+    "Lucknow": ["loan-app-harassment", "otp-call", "digital-arrest"],
+    "Kochi": ["job-offer", "courier-customs", "fake-customer-care"],
+}  # fmt: skip
+SCENE_AREAS = {"560034", "560038"}  # the spike and new-type stories keep their own exact pattern
+
+
+def background(x: Ctx) -> list[dict[str, Any]]:
+    """Two weeks of everyday single reports in every area, at different intensities."""
+    from judge.world import AREAS as WA
+
+    reps = []
+    for pin, (_, city, _, _) in WA.items():
+        if pin in SCENE_AREAS or city not in CITY_TYPES:
+            continue
+        per_day = (1.1 if city == "Bengaluru" else 1.8) * x.r.uniform(0.35, 1.7)
+        for _ in range(round(per_day * 14)):
+            t, raw, _, _ = x.g.ident(("phone", "phone", "phone", "phone", "upi", "url"))
+            reps.append(x.rep(t=t, value=raw, pin=pin, st=x.r.choice(CITY_TYPES[city]), hours_ago=x.r.uniform(1, 14 * 24),
+                              lost=x.r.choice([0, 0, 0, 0, 1500, 4999, 25000])))  # fmt: skip
+    return reps
+
+
+# (value, type, scam type, pincode, victims, SMS script or None). Some scripts run on two numbers in
+# two cities, so Explore's wording search links them.
+CAMPAIGNS = [
+    ("98201 40001", "phone", "courier-customs", "400050", 5, "parcel"),
+    ("99101 40002", "phone", "courier-customs", "110016", 4, "parcel"),
+    ("99102 50001", "phone", "digital-arrest", "110016", 5, "arrest"),
+    ("94150 50002", "phone", "digital-arrest", "226010", 3, "arrest"),
+    ("profit.desk22@axl", "upi", "investment-group", "500081", 4, None),
+    ("90110 60001", "phone", "job-offer", "411014", 4, "job"),
+    ("94470 60002", "phone", "job-offer", "682030", 3, "job"),
+    ("98300 70001", "phone", "lottery-prize", "700091", 4, "lottery"),
+    ("https://sbi-kyc-verify24.in/update", "url", "fake-kyc-link", "302017", 4, "kyc"),
+    ("https://kyc-update-now.in/login", "url", "fake-kyc-link", "600020", 3, "kyc"),
+    ("VM-KYCUPD", "sender_id", "fake-kyc-link", "560066", 3, "kyc"),
+    ("refund.cell@ybl", "upi", "upi-refund-qr", "380015", 4, None),
+]
+
+
+def campaign(x: Ctx, value: str, t: str, st: str, pin: str, n: int, script: str | None) -> list[dict[str, Any]]:
+    r = random.Random(value)
+    reps = []
+    for i in range(n):
+        body = x.victim(value, st=st, t=t, pin=pin, hours_ago=4 + 19 * i + r.uniform(0, 6), shot=i % 2 == 0,
+                        lost=[0, 9500, 0, 48000, 0][i % 5])  # fmt: skip
+        if script:
+            num = value.replace(" ", "") if t == "phone" else None
+            text = fill(script, r, num=num)
+            body["message"] = text if t == "phone" else f"{text} {value}"
+        reps.append(body)
+    return reps
+
+
+# A loan app's numbers, all disputed by one contact: the review page's bulk-dispute case.
+LOAN_APP = ["94151 80001", "94151 80002", "94151 80003"]
+
+
+def play_world(x: Ctx) -> None:
+    x.post(background(x))
+    for value, t, st, pin, n, script in CAMPAIGNS:
+        x.post(campaign(x, value, t, st, pin, n, script))
+    for v in LOAN_APP:
+        x.post(campaign(x, v, "phone", "loan-app-harassment", "226010", 4, None))
+        x.c.post("/challenges", json={"identifier_type": "phone", "identifier_value": v, "claimant_name": "QuickCash Finance",
+                                      "contact_email": "legal@quickcash.example", "proof_note": "We are a registered lender."})  # fmt: skip
+    # Indiranagar: a month of OTP and KYC calls, then the first sextortion report in 3 hours: NEW_TYPE.
+    x.post([*area_reports(x, "560038", 0.5, (1.05, 29), ["otp-call", "fake-kyc-link"]),
+            x.victim(x.phone(), st="sextortion", pin="560038", hours_ago=3)])  # fmt: skip
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base-url", required=True)
@@ -125,6 +209,7 @@ def main() -> int:
                                   "contact_email": "owner@example.com", "proof_note": "GST certificate attached."})  # fmt: skip
     # Koramangala: 2 a day for a week, then 10 today, so the area shows a spike on the map.
     x.post(area_reports(x, "560034", 2, (1.05, 8), ["otp-call"]) + area_reports(x, "560034", 10, (0.05, 0.95), ["otp-call"]))
+    play_world(x)
 
     ok = True
     print(f"| Story | Type | Look up | Expected | App says | Counted | Shown as | OK |\n|{'---|' * 8}")
@@ -138,6 +223,28 @@ def main() -> int:
     ok &= len(found) == 3
     print(f"\nWording search for a new send of the electricity script finds {len(found)} numbers: "
           f"{[m['display_value'] for m in found]}")  # fmt: skip
+    for value, t, *_ in CAMPAIGNS:
+        b = x.look(value, t)
+        ok &= b.get("verdict") == "KNOWN_SCAM"
+        print(f"| Campaign | {t} | `{value}` | KNOWN_SCAM | {b.get('verdict')} | {b.get('distinct_reporters')} | `{b.get('display_value')}` | {'yes' if b.get('verdict') == 'KNOWN_SCAM' else 'NO'} |")  # fmt: skip
+    for v in LOAN_APP:
+        b = x.look(v)
+        good = b.get("challenged") is True
+        ok &= good
+        print(f"| Loan app, disputed | phone | `{v}` | SUSPICIOUS, challenged | {b.get('verdict')} | {b.get('distinct_reporters')} | `{b.get('display_value')}` | {'yes' if good else 'NO'} |")  # fmt: skip
+    for script, want in (("parcel", 2), ("arrest", 2), ("job", 2), ("kyc", 3), ("lottery", 1)):
+        got = len(x.c.post("/explore/similar", json={"text": fill(script, random.Random(9))}).json().get("matches", []))
+        ok &= got == want
+        print(f"Wording search, new {script} send: {got} numbers (want {want})")
+    known = x.c.get("/explore/known").json()
+    stats = x.c.get("/stats", params={"days": 14}).json()
+    days_with = sum(d["reports"] > 0 for d in stats["daily"])
+    ok &= known["total"] >= 12 and days_with >= 13 and len(stats["by_city"]) == 11
+    print(f"Confirmed scams: {known['total']}, stats: {stats['reports']} reports in 14 days, {stats['counted']} counted, "
+          f"{days_with}/14 days with reports, {len(stats['by_city'])} cities")  # fmt: skip
+    new = [i for i in x.alerts("560038") if i["type"] == "NEW_TYPE"]
+    ok &= bool(new)
+    print(f"Indiranagar alerts: {[(i['type'], i.get('scam_type')) for i in x.alerts('560038')]}")
     alerts = x.alerts("560034")
     spike = [i for i in alerts if i["type"] == "SPIKE"]
     ok &= bool(spike)
