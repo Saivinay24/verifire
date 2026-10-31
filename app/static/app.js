@@ -50,6 +50,51 @@ const T = {
     newtype: (a, t) => `New scam near ${a}: ${t}.`,
     reports_n: (n) => `${n} ${n === 1 ? "report" : "reports"}`,
     ago_min: (n) => `${n} min ago`, ago_h: (n) => `${n} h ago`, ago_d: (n) => `${n} d ago`,
+    say_it: "Say it", listening: "Listening. Tap to stop", mic_hint: "Listening. Speak in English or Hindi. Your phone turns it into text.",
+    mic_denied: "Allow the microphone to speak your note.", mic_fail: "Couldn't hear that. Type it instead.",
+    prepare_complaint: "Prepare my complaint", c_title: "Your complaint, ready to send",
+    c_sub: "Written from your report. Fill in the parts in [brackets]. It stays on your phone.",
+    c_money: "Money taken? Call 1930 first. Banks can hold the money only if it is reported fast.",
+    c_copy: "Copy", c_share: "Share", c_email: "Email to my bank", c_portal: "Open cybercrime.gov.in", c_copied: "Copied. Paste it into the complaint form.",
+    complaint: (r) => ({
+      subject: `Complaint about a suspected scam: ${r.type}, ${r.date}`,
+      body: [
+        "To the Cyber Crime Cell / my bank's customer care,", "",
+        "I want to report a suspected scam and ask for help.", "",
+        `Date and time: ${r.when} (about)`,
+        `How they contacted me: ${r.channel}`,
+        `What they tried: ${r.type}`,
+        `Their ${r.kind}: ${r.value}`,
+        `My area: ${r.area}`,
+        `Money lost: ${r.amount ? "₹" + r.amount : "None"}`,
+        `What happened: ${r.note || "[describe what happened, in your own words]"}`, "",
+        ...(r.amount ? ["Payment details: [bank or UPI app], [transaction ID], [date and time of payment]",
+          "Please hold or recover the amount above. I have called or will call 1930, the national cybercrime helpline.", ""] : []),
+        "My details:", "Name: [your name]", "Phone: [your phone number]", "Email: [your email]", "", "Thank you.",
+      ].join("\n"),
+    }),
+    stats_cta: "Stats", pull_more: "Show more",
+    pull_title: (c) => `${c}, last 7 days`,
+    pull_sub: (counted, aside) => aside ? `${counted} reports counted. ${aside} repeats and fake reports set aside.` : `${counted} reports counted.`,
+    pull_empty: (c) => `No reports counted in ${c} in the last 7 days.`,
+    trending: "Trending scams", known_here: "Numbers reported as scams", by_area: "By area", recent: "Recent reports",
+    pull_foot: "Built only from reports our trust engine counted. Times are rounded to the hour. A number stays hidden until 3 different people report it.",
+    none_known: "None yet. A number shows here once 3 different people report it.", spike_badge: "Spike today",
+    spike_near: (a) => `Scam reports near ${a} jumped today.`, people_n: (n) => `${n} ${n === 1 ? "person" : "people"}`,
+    stats_title: "Live on VeriFire",
+    stats_sub: "What people reported here, counted after our trust engine set repeats and fake reports aside.",
+    days_n: (n) => `${n} days`, reports_in: (n) => `reports in ${n} days`,
+    counted: "Counted", set_aside: "Set aside",
+    hero_note: (aside) => `${aside} were set aside: the same person again, fake accounts on one connection, or a pile-on. They never shape trends or alerts.`,
+    k_numbers: "Numbers reported", k_known: "Reported as scams", k_money: "Money people said they lost",
+    k_week: "Counted this week", vs_last: (n) => `${n} the week before`,
+    last14: "Last 14 days", by_type: "By scam type", by_channel: "How they reached people", by_city: "By city",
+    other_types: "Everything else", no_data: "No reports in this period yet.",
+    india_title: "Across India", india_lost: "lost to online financial scams in 2025, in 28.15 lakh complaints",
+    india_invest: "of that money was lost to fake investment and trading schemes",
+    india_saved: "saved in 32.80 lakh complaints because people reported fast to 1930 (to 30 June 2026)",
+    india_source: "Figures presented by NIELIT Kohima at a PIB media workshop, 21 Aug 2026.", india_link: "Read the PIB release",
+    stats_fine: "Everything above the \"Across India\" card is reports made on VeriFire, not national totals.",
   },
   hi: {
     brand: "VeriFire",
@@ -95,6 +140,51 @@ const T = {
     newtype: (a, t) => `${a} के पास नया स्कैम: ${t}।`,
     reports_n: (n) => `${n} रिपोर्ट`,
     ago_min: (n) => `${n} मिनट पहले`, ago_h: (n) => `${n} घंटे पहले`, ago_d: (n) => `${n} दिन पहले`,
+    say_it: "बोलकर बताएं", listening: "सुन रहे हैं। रोकने के लिए दबाएं", mic_hint: "सुन रहे हैं। हिंदी या अंग्रेज़ी में बोलें। आपका फ़ोन इसे लिख देगा।",
+    mic_denied: "बोलकर लिखने के लिए माइक्रोफ़ोन की अनुमति दें।", mic_fail: "सुनाई नहीं दिया। लिखकर बताएं।",
+    prepare_complaint: "मेरी शिकायत तैयार करें", c_title: "आपकी शिकायत, भेजने के लिए तैयार",
+    c_sub: "आपकी रिपोर्ट से लिखी गई है। [ब्रैकेट] वाली जगह भरें। यह आपके फ़ोन पर ही रहती है।",
+    c_money: "पैसे गए? पहले 1930 पर कॉल करें। जल्दी बताने पर ही बैंक पैसे रोक सकता है।",
+    c_copy: "कॉपी करें", c_share: "शेयर करें", c_email: "बैंक को ईमेल करें", c_portal: "cybercrime.gov.in खोलें", c_copied: "कॉपी हो गया। शिकायत फ़ॉर्म में पेस्ट करें।",
+    complaint: (r) => ({
+      subject: `संदिग्ध स्कैम की शिकायत: ${r.type}, ${r.date}`,
+      body: [
+        "सेवा में, साइबर क्राइम सेल / मेरे बैंक की ग्राहक सेवा,", "",
+        "मैं एक संदिग्ध स्कैम की रिपोर्ट करना चाहता/चाहती हूं और मदद चाहता/चाहती हूं।", "",
+        `तारीख और समय: ${r.when} (लगभग)`,
+        `उन्होंने संपर्क कैसे किया: ${r.channel}`,
+        `उन्होंने क्या करने की कोशिश की: ${r.type}`,
+        `उनका ${r.kind}: ${r.value}`,
+        `मेरा इलाका: ${r.area}`,
+        `कितने पैसे गए: ${r.amount ? "₹" + r.amount : "कोई नहीं"}`,
+        `क्या हुआ: ${r.note || "[अपने शब्दों में लिखें कि क्या हुआ]"}`, "",
+        ...(r.amount ? ["भुगतान का विवरण: [बैंक या UPI ऐप], [ट्रांज़ैक्शन ID], [भुगतान की तारीख और समय]",
+          "कृपया ऊपर की राशि रोकें या वापस दिलाएं। मैंने 1930 (राष्ट्रीय साइबर क्राइम हेल्पलाइन) पर कॉल किया है या करूंगा/करूंगी।", ""] : []),
+        "मेरा विवरण:", "नाम: [आपका नाम]", "फ़ोन: [आपका फ़ोन नंबर]", "ईमेल: [आपका ईमेल]", "", "धन्यवाद।",
+      ].join("\n"),
+    }),
+    stats_cta: "आंकड़े", pull_more: "और देखें",
+    pull_title: (c) => `${c}, पिछले 7 दिन`,
+    pull_sub: (counted, aside) => aside ? `${counted} रिपोर्ट गिनी गईं। ${aside} दोहराई या नकली रिपोर्ट अलग रखी गईं।` : `${counted} रिपोर्ट गिनी गईं।`,
+    pull_empty: (c) => `पिछले 7 दिनों में ${c} में कोई रिपोर्ट नहीं गिनी गई।`,
+    trending: "अभी चल रहे स्कैम", known_here: "स्कैम के रूप में रिपोर्ट किए गए नंबर", by_area: "इलाके के हिसाब से", recent: "हाल की रिपोर्ट",
+    pull_foot: "सिर्फ वे रिपोर्ट जिन्हें हमारे ट्रस्ट इंजन ने गिना। समय घंटे तक गोल किया गया है। जब तक 3 अलग लोग रिपोर्ट न करें, नंबर छिपा रहता है।",
+    none_known: "अभी कोई नहीं। 3 अलग लोगों के रिपोर्ट करने पर नंबर यहां दिखेगा।", spike_badge: "आज अचानक बढ़ीं",
+    spike_near: (a) => `${a} के पास आज स्कैम रिपोर्ट अचानक बढ़ीं।`, people_n: (n) => `${n} लोग`,
+    stats_title: "VeriFire पर अभी",
+    stats_sub: "यहां लोगों ने क्या रिपोर्ट किया, ट्रस्ट इंजन के दोहराई और नकली रिपोर्ट अलग करने के बाद।",
+    days_n: (n) => `${n} दिन`, reports_in: (n) => `रिपोर्ट, ${n} दिनों में`,
+    counted: "गिनी गईं", set_aside: "अलग रखी गईं",
+    hero_note: (aside) => `${aside} अलग रखी गईं: वही व्यक्ति दोबारा, एक कनेक्शन पर नकली अकाउंट, या मिलकर की गई रिपोर्ट। ये रुझान या अलर्ट पर असर नहीं डालतीं।`,
+    k_numbers: "रिपोर्ट किए गए नंबर", k_known: "स्कैम के रूप में रिपोर्ट", k_money: "लोगों ने बताया, इतने पैसे गए",
+    k_week: "इस हफ्ते गिनी गईं", vs_last: (n) => `पिछले हफ्ते ${n}`,
+    last14: "पिछले 14 दिन", by_type: "स्कैम के प्रकार से", by_channel: "लोगों तक कैसे पहुंचे", by_city: "शहर के हिसाब से",
+    other_types: "बाकी सब", no_data: "इस अवधि में अभी कोई रिपोर्ट नहीं।",
+    india_title: "पूरे भारत में", india_lost: "2025 में ऑनलाइन वित्तीय स्कैम में गए, 28.15 लाख शिकायतों में",
+    india_invest: "पैसा नकली निवेश और ट्रेडिंग स्कीम में गया",
+    india_saved: "32.80 लाख शिकायतों में बचाए गए, क्योंकि लोगों ने जल्दी 1930 पर बताया (30 जून 2026 तक)",
+    india_source: "PIB मीडिया वर्कशॉप में NIELIT कोहिमा द्वारा प्रस्तुत आंकड़े, 21 अगस्त 2026।", india_link: "PIB रिलीज़ पढ़ें",
+    stats_fine: "\"पूरे भारत में\" कार्ड के ऊपर सब कुछ VeriFire पर की गई रिपोर्ट है, राष्ट्रीय आंकड़े नहीं।",
   },
 };
 
@@ -285,6 +375,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   const open = document.querySelector(".sheet:not([hidden])");
   if (open) closeSheet("#" + open.id); else if (!$("#reportFlow").hidden) closeFlow(); else if (!$("#mapView").hidden) closeMap();
+  else if (!$("#statsView").hidden) closeStats();
 });
 
 // ---------------- Check ----------------
@@ -411,10 +502,10 @@ function openFlow(prefill) {
   Object.assign(draft, { channel: null, type: null, when: 0 });
   $("#reportForm").reset(); $("#valueError").hidden = true;
   $("#reportValue").value = prefill; updateKind($("#reportValue"), $("#reportKind"));
-  renderTiles(); renderWhen(); renderArea();
+  renderTiles(); renderWhen(); renderArea(); stopListening(); setNoteOpen(false);
   $("#reportFlow").hidden = false; go(1);
 }
-function closeFlow() { $("#reportFlow").hidden = true; }
+function closeFlow() { stopListening(); $("#reportFlow").hidden = true; }
 $("#openReport").addEventListener("click", () => openFlow(detectKind($("#checkInput").value) ? $("#checkInput").value.trim() : ""));
 $("#flowClose").addEventListener("click", closeFlow);
 $("#skipType").addEventListener("click", () => { draft.type = "other"; go(3); });
@@ -441,13 +532,95 @@ $("#reportForm").addEventListener("submit", async (e) => {
     identifier_type: kind, identifier_value: value, pincode: a.pincode, locality: a.locality, city: a.city,
     note: $("#reportNote").value.trim(), has_screenshot: false, amount_lost_inr: Number.isFinite(amount) ? amount : 0,
   };
+  stopListening();
   $("#sendReport").disabled = true;
   try {
     await api("/reports", { method: "POST", body: JSON.stringify(payload) });
+    lastReport = { ...payload, kind, occurred, area: a };
     go(4); refreshAlerts();
   } catch (ex) {
     if (!(ex instanceof LicenceExpired)) ex.status === 400 ? err(t("invalid")) : toast(ex.message);
   } finally { $("#sendReport").disabled = false; }
+});
+
+// ---------------- Voice note ----------------
+// The phone's own speech recognition fills the note box; the person can read and edit it before
+// sending. We never receive audio. On Android Chrome the phone's speech service does the
+// transcribing, which is why the hint says "your phone turns it into text", not "nothing leaves".
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+$("#micBtn").hidden = !Recognition;
+function setNoteOpen(open) {
+  $("#noteBody").hidden = !open; $("#noteToggle").setAttribute("aria-expanded", String(open));
+  if (open) $("#reportNote").focus({ preventScroll: true });
+}
+$("#noteToggle").addEventListener("click", () => setNoteOpen($("#noteBody").hidden));
+function stopListening() { if (rec) { try { rec.stop(); } catch { /* already stopped */ } } }
+function showListening(on) {
+  const b = $("#micBtn"); b.setAttribute("aria-pressed", String(on));
+  b.querySelector("span").textContent = t(on ? "listening" : "say_it"); $("#micHint").hidden = !on;
+}
+$("#micBtn").addEventListener("click", () => {
+  if (rec) { stopListening(); return; }
+  setNoteOpen(true);
+  const box = $("#reportNote"), before = box.value.trim();
+  rec = new Recognition();
+  rec.lang = lang === "hi" ? "hi-IN" : "en-IN"; rec.interimResults = true; rec.continuous = true;
+  rec.onresult = (e) => {
+    let said = "";
+    for (let i = 0; i < e.results.length; i++) said += e.results[i][0].transcript;
+    box.value = ((before ? before + " " : "") + said.trim()).slice(0, 600);
+  };
+  rec.onerror = (e) => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") toast(t("mic_denied"));
+    else if (e.error !== "aborted" && e.error !== "no-speech") toast(t("mic_fail"));
+  };
+  rec.onend = () => { rec = null; showListening(false); };
+  try { rec.start(); showListening(true); } catch { rec = null; toast(t("mic_fail")); }
+});
+
+// ---------------- Prepare my complaint ----------------
+// Drafted here from the report just sent, in the person's language. It never goes to our server:
+// they copy it into cybercrime.gov.in, share it, or email it from their own mail app.
+let lastReport = null;
+function fmtValue(kind, v) {
+  const m = kind === "phone" && /^\+91(\d{5})(\d{5})$/.exec(v);
+  return m ? `+91 ${m[1]} ${m[2]}` : v;
+}
+function complaintDraft() {
+  const r = lastReport, loc = lang === "hi" ? "hi-IN" : "en-IN";
+  const ch = CHANNELS.find((c) => c.id === r.channel);
+  return t("complaint", {
+    type: typeInfo(r.scam_type)[lang], channel: ch ? ch[lang] : r.channel, kind: T[lang].kinds[r.kind],
+    value: fmtValue(r.kind, r.identifier_value), note: r.note,
+    amount: r.amount_lost_inr ? r.amount_lost_inr.toLocaleString("en-IN") : "",
+    date: r.occurred.toLocaleDateString(loc, { day: "numeric", month: "short", year: "numeric" }),
+    when: r.occurred.toLocaleString(loc, { dateStyle: "medium", timeStyle: "short" }),
+    area: `${r.area.locality}, ${r.area.city} ${r.area.pincode}`,
+  });
+}
+let draftSubject = "";
+$("#openComplaint").addEventListener("click", () => {
+  if (!lastReport) return;
+  const d = complaintDraft(); draftSubject = d.subject;
+  $("#complaintText").value = d.body;
+  $("#cMoney").hidden = !lastReport.amount_lost_inr;
+  $("#cShare").hidden = !navigator.share;
+  openSheet("#complaintSheet");
+});
+$("#cCopy").addEventListener("click", async () => {
+  const text = `${draftSubject}\n\n${$("#complaintText").value}`;
+  try { await navigator.clipboard.writeText(text); }
+  catch { $("#complaintText").select(); document.execCommand("copy"); }
+  toast(t("c_copied"));
+});
+$("#cShare").addEventListener("click", async () => {
+  try { await navigator.share({ title: draftSubject, text: `${draftSubject}\n\n${$("#complaintText").value}` }); }
+  catch { /* the person closed the share sheet */ }
+});
+$("#cEmail").addEventListener("click", () => {
+  // No address: they pick their bank's official address in their own mail app.
+  location.href = `mailto:?subject=${encodeURIComponent(draftSubject)}&body=${encodeURIComponent($("#complaintText").value)}`;
 });
 
 // ---------------- Dispute ----------------
@@ -494,7 +667,7 @@ function loadLeaflet() {
   return leaflet;
 }
 async function openMap() {
-  $("#mapView").hidden = false;
+  $("#mapView").hidden = false; setPull("peek");
   if (!areaByPin(area)) { openAreaPicker(); return; }
   loadMap();
 }
@@ -502,55 +675,262 @@ function closeMap() { $("#mapView").hidden = true; }
 $("#openMap").addEventListener("click", openMap);
 $("#mapBack").addEventListener("click", closeMap);
 
+// The city sheet: peeks over the lower half of the map, pulls up to nearly full screen.
+const pull = $("#pull");
+function setPull(state) {
+  pull.dataset.state = state; pull.style.height = "";
+  $("#pullHandle").setAttribute("aria-expanded", String(state === "full"));
+}
+let drag = null;
+$("#pullHead").addEventListener("pointerdown", (e) => {
+  drag = { y: e.clientY, h: pull.getBoundingClientRect().height, moved: false, id: e.pointerId };
+  $("#pullHead").setPointerCapture(e.pointerId);
+});
+$("#pullHead").addEventListener("pointermove", (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dy = drag.y - e.clientY;
+  if (!drag.moved && Math.abs(dy) < 6) return;
+  drag.moved = true; pull.classList.add("dragging");
+  pull.style.height = `${Math.max(140, Math.min(innerHeight * 0.92, drag.h + dy))}px`;
+});
+function endDrag() {
+  if (!drag) return;
+  const { moved, h } = drag; drag = null; pull.classList.remove("dragging");
+  if (!moved) { setPull(pull.dataset.state === "full" ? "peek" : "full"); return; }
+  const now = pull.getBoundingClientRect().height;
+  setPull(now > h + 40 ? "full" : now < h - 40 ? "peek" : pull.dataset.state);
+}
+$("#pullHead").addEventListener("pointerup", endDrag);
+$("#pullHead").addEventListener("pointercancel", endDrag);
+
+function row(tag, html) { const r = document.createElement(tag); r.className = "row"; if (tag === "button") r.type = "button"; r.innerHTML = html; return r; }
+function emptyLine(host, text) { const p = document.createElement("p"); p.className = "empty-sm"; p.textContent = text; host.append(p); }
+
+function renderBars(host, items, label, limit = 6) {
+  host.replaceChildren();
+  if (!items.length) { emptyLine(host, t("no_data")); return; }
+  const shown = items.slice(0, limit);
+  const rest = items.slice(limit).reduce((s, x) => s + x.count, 0);
+  if (rest) shown.push({ _other: true, count: rest });
+  const max = Math.max(...shown.map((x) => x.count));
+  shown.forEach((x) => {
+    const b = document.createElement("div"); b.className = "bar";
+    b.innerHTML = `<span class="lbl"></span><span class="val"></span><div class="track"><div class="fill"></div></div>`;
+    b.querySelector(".lbl").textContent = x._other ? t("other_types") : label(x);
+    b.querySelector(".val").textContent = x.count.toLocaleString("en-IN");
+    b.querySelector(".fill").style.width = `${Math.max(2, (100 * x.count) / max)}%`;
+    host.append(b);
+  });
+}
+
+async function lookupValue(kind, value) {
+  try { const r = await api(`/lookup?type=${encodeURIComponent(kind)}&value=${encodeURIComponent(value)}`); lastChecked = { kind, value }; showResult(r); }
+  catch (ex) { if (!(ex instanceof LicenceExpired)) toast(ex.message); }
+}
+
 async function loadMap() {
   const a = areaByPin(area); if (!a) return;
   renderArea();
-  let data, alerts;
+  let city, alerts;
   try {
-    [data, alerts] = await Promise.all([api(`/map?pincode=${a.pincode}&days=7&radius_km=25`), api(`/alerts?pincode=${a.pincode}`)]);
+    [city, alerts] = await Promise.all([api(`/city?pincode=${a.pincode}&days=7`), api(`/alerts?pincode=${a.pincode}`)]);
   } catch (ex) { if (!(ex instanceof LicenceExpired)) toast(ex.message); return; }
+  renderPull(city, alerts.alerts, a);
+  drawMap(city, a);
+}
+
+function renderPull(city, alerts, a) {
+  $("#pullTitle").textContent = t("pull_title", city.city);
+  $("#pullSub").textContent = city.counted ? t("pull_sub", city.counted, city.reports - city.counted) : t("pull_empty", city.city);
 
   const al = $("#alertList"); al.replaceChildren();
-  alerts.alerts.forEach((x) => {
-    const r = document.createElement("div"); r.className = "row row-alert";
-    r.innerHTML = `<span class="dot sev-CRIT"></span><span class="grow"><strong></strong></span>`;
-    r.querySelector("strong").textContent = alertText(x, a); al.append(r);
+  const spikes = city.areas.filter((x) => x.spike && x.pincode !== a.pincode);
+  [...alerts.map((x) => alertText(x, a)), ...spikes.map((x) => t("spike_near", x.locality))].forEach((text) => {
+    const r = row("div", `<span class="pulse" aria-hidden="true"></span><span class="grow"><strong></strong></span>`);
+    r.classList.add("row-alert"); r.querySelector("strong").textContent = text; al.append(r);
   });
 
-  const cl = $("#clusterList"); cl.replaceChildren();
-  if (!data.clusters.length) { const p = document.createElement("p"); p.className = "empty"; p.textContent = t("no_clusters"); cl.append(p); }
-  data.clusters.forEach((c) => {
-    const r = document.createElement("div"); r.className = "row";
-    r.innerHTML = `<span class="dot sev-${c.severity}"></span><span class="grow"><strong></strong><small></small></span><span class="count"></span>`;
-    r.querySelector("strong").textContent = `${c.locality}, ${c.city}`;
-    r.querySelector("small").textContent = typeInfo(c.top_scam_type)[lang];
-    r.querySelector(".count").textContent = t("reports_n", c.count);
-    cl.append(r);
+  renderBars($("#typeBars"), city.scam_types, (x) => typeInfo(x.scam_type)[lang], 5);
+
+  const kl = $("#knownList"); kl.replaceChildren();
+  if (!city.known_scams.length) emptyLine(kl, t("none_known"));
+  city.known_scams.forEach((k) => {
+    const r = row("button", `<span class="dot sev-CRIT"></span><span class="grow"><strong></strong><small></small></span><svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>`);
+    r.querySelector("strong").textContent = fmtValue(k.identifier_type, k.display_value);
+    r.querySelector("small").textContent = `${typeInfo(k.scam_type)[lang]} · ${t("people_n", k.people)} · ${k.localities.join(", ")}`;
+    r.addEventListener("click", () => lookupValue(k.identifier_type, k.display_value));
+    kl.append(r);
   });
 
+  const ar = $("#areaRows"); ar.replaceChildren();
+  if (!city.areas.length) emptyLine(ar, t("no_clusters"));
+  city.areas.forEach((x) => {
+    const r = row("button", `<span class="dot sev-${x.severity}"></span><span class="grow"><strong></strong><small></small></span>`);
+    r.querySelector("strong").textContent = x.locality;
+    r.querySelector("small").textContent = `${typeInfo(x.top_scam_type)[lang]} · ${t("reports_n", x.count)}`;
+    if (x.spike) { const s = document.createElement("span"); s.className = "badge"; s.textContent = t("spike_badge"); r.append(s); }
+    r.addEventListener("click", () => focusArea(x));
+    ar.append(r);
+  });
+
+  const fd = $("#feed"); fd.replaceChildren();
+  if (!city.recent.length) emptyLine(fd, t("no_data"));
+  city.recent.forEach((f) => {
+    const open = f.verdict === "KNOWN_SCAM";
+    const ch = CHANNELS.find((c) => c.id === f.channel) || CHANNELS[CHANNELS.length - 1];
+    const r = row(open ? "button" : "div", `<span class="ch-icon"><svg aria-hidden="true"><use href="#${ch.icon}"/></svg></span><span class="grow"><strong></strong><small></small></span>`);
+    r.querySelector("strong").textContent = typeInfo(f.scam_type)[lang];
+    r.querySelector("small").textContent = `${fmtValue(f.identifier_type, f.display_value)} · ${f.locality} · ${ago(f.occurred_at)}`;
+    if (open) {
+      r.insertAdjacentHTML("beforeend", `<svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>`);
+      r.addEventListener("click", () => lookupValue(f.identifier_type, f.display_value));
+    }
+    fd.append(r);
+  });
+}
+
+const markers = {};
+async function drawMap(city, a) {
   try {
     const L = await loadLeaflet();
     // The view was hidden a frame ago: wait for layout, or Leaflet sizes its layers at 0x0.
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     if (!map) {
       map = L.map("map", { zoomControl: false, attributionControl: true });
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18, attribution: "© OpenStreetMap",
-      }).addTo(map);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
       map.setView([a.lat, a.lng], 12);
     }
     map.invalidateSize();
     layer?.remove(); layer = L.layerGroup().addTo(map);
+    Object.keys(markers).forEach((k) => delete markers[k]);
     const color = { CRIT: "#D4423A", HIGH: "#C27C0E", MED: "#E3B341" };
-    L.circleMarker([a.lat, a.lng], { radius: 7, color: "#2F5BEA", weight: 3, fillColor: "#fff", fillOpacity: 1 }).addTo(layer);
     const pts = [[a.lat, a.lng]];
-    data.clusters.forEach((c) => {
-      L.circleMarker([c.lat, c.lng], { radius: 10 + Math.min(18, c.count * 1.5), color: color[c.severity], weight: 1.5,
-        fillColor: color[c.severity], fillOpacity: 0.28 }).bindTooltip(`${c.locality}: ${c.count}`).addTo(layer);
+    city.areas.forEach((c) => {
+      markers[c.pincode] = L.circleMarker([c.lat, c.lng], { radius: 10 + Math.min(18, c.count * 1.5), color: color[c.severity], weight: 1.5,
+        fillColor: color[c.severity], fillOpacity: 0.28 }).bindTooltip(`${c.locality}: ${t("reports_n", c.count)}`).addTo(layer);
+      if (c.spike) L.marker([c.lat, c.lng], { icon: L.divIcon({ className: "", html: '<div class="spike-pin"></div>', iconSize: [18, 18] }), interactive: false }).addTo(layer);
       pts.push([c.lat, c.lng]);
     });
-    if (pts.length > 1) map.fitBounds(pts, { padding: [28, 28], maxZoom: 14 }); else map.setView([a.lat, a.lng], 13);
-  } catch { /* map tiles are a bonus; the list above already has everything */ }
+    L.circleMarker([a.lat, a.lng], { radius: 7, color: "#2F5BEA", weight: 3, fillColor: "#fff", fillOpacity: 1 }).addTo(layer);
+    // Keep every point above the sheet: pad the bottom by the sheet's height.
+    const bottom = pull.getBoundingClientRect().height + 16;
+    if (pts.length > 1) map.fitBounds(pts, { paddingTopLeft: [24, 80], paddingBottomRight: [24, bottom], maxZoom: 14 });
+    else map.setView([a.lat, a.lng], 13);
+  } catch { /* map tiles are a bonus; the sheet already has everything */ }
+}
+function focusArea(x) {
+  setPull("peek");
+  if (!map) return;
+  const bottom = innerHeight * 0.46;
+  map.flyToBounds([[x.lat, x.lng]], { paddingTopLeft: [24, 80], paddingBottomRight: [24, bottom], maxZoom: 14, duration: 0.6 });
+  markers[x.pincode]?.openTooltip();
+}
+
+// ---------------- Live statistics ----------------
+let statsDays = 30;
+const RANGES = [7, 30, 90];
+function openStats() { $("#statsView").hidden = false; $("#statsView").scrollTop = 0; loadStats(); }
+function closeStats() { $("#statsView").hidden = true; }
+$("#openStats").addEventListener("click", openStats);
+$("#statsBack").addEventListener("click", closeStats);
+function renderRange() {
+  const seg = $("#statsRange"); seg.replaceChildren();
+  RANGES.forEach((d) => {
+    const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "radio");
+    b.setAttribute("aria-checked", String(d === statsDays)); b.textContent = t("days_n", d);
+    b.addEventListener("click", () => { statsDays = d; loadStats(); });
+    seg.append(b);
+  });
+}
+const inr = (n) => "₹" + Math.round(n).toLocaleString("en-IN");
+
+async function loadStats() {
+  renderRange();
+  let s;
+  try { s = await api(`/stats?days=${statsDays}`); } catch (ex) { if (!(ex instanceof LicenceExpired)) toast(ex.message); return; }
+
+  const hero = $("#statsHero");
+  hero.innerHTML = `<div class="big"></div><div class="split" aria-hidden="true"></div><div class="legend"></div><p></p>`;
+  hero.querySelector(".big").innerHTML = `${s.reports.toLocaleString("en-IN")}<small></small>`;
+  hero.querySelector("small").textContent = t("reports_in", statsDays);
+  const split = hero.querySelector(".split");
+  [[s.counted, "counted"], [s.set_aside, "aside"]].forEach(([n]) => {
+    if (!n) return; const i = document.createElement("i"); i.style.flex = String(n); split.append(i);
+  });
+  if (s.counted && !s.set_aside) split.firstChild.style.borderRadius = "4px";
+  if (!s.counted && s.set_aside) { split.firstChild.style.background = "#E3A43A"; split.firstChild.style.borderRadius = "4px"; }
+  hero.querySelector(".legend").innerHTML =
+    `<span><i class="sw-counted"></i><span></span> <b></b></span><span><i class="sw-aside"></i><span></span> <b></b></span>`;
+  const lg = hero.querySelectorAll(".legend > span");
+  lg[0].querySelector("span").textContent = t("counted"); lg[0].querySelector("b").textContent = s.counted.toLocaleString("en-IN");
+  lg[1].querySelector("span").textContent = t("set_aside"); lg[1].querySelector("b").textContent = s.set_aside.toLocaleString("en-IN");
+  hero.querySelector("p").textContent = s.reports ? t("hero_note", s.set_aside.toLocaleString("en-IN")) : t("no_data");
+
+  const k = $("#kpis"); k.replaceChildren();
+  [[s.numbers_reported.toLocaleString("en-IN"), t("k_numbers")], [s.known_scam_numbers.toLocaleString("en-IN"), t("k_known")],
+   [inr(s.money_lost_inr), t("k_money")], [s.this_week.toLocaleString("en-IN"), `${t("k_week")} · ${t("vs_last", s.last_week)}`]]
+    .forEach(([v, l]) => {
+      const d = document.createElement("div"); d.className = "kpi"; d.innerHTML = "<b></b><span></span>";
+      d.querySelector("b").textContent = v; d.querySelector("span").textContent = l; k.append(d);
+    });
+
+  renderDaily(s.daily);
+  renderBars($("#statTypes"), s.by_scam_type, (x) => typeInfo(x.scam_type)[lang]);
+  renderBars($("#statChannels"), s.by_channel, (x) => (CHANNELS.find((c) => c.id === x.channel) || CHANNELS[CHANNELS.length - 1])[lang]);
+  renderBars($("#statCities"), s.by_city, (x) => x.city);
+}
+
+// Two stacked series per day (counted, set aside), one y-axis, a 2px gap between segments,
+// 4px rounded tops, a legend, and a tap or hover tooltip with both numbers.
+function renderDaily(days) {
+  const host = $("#daily"); host.replaceChildren();
+  $("#dailyLegend").innerHTML = `<span><i class="sw-counted"></i></span><span><i class="sw-aside"></i></span>`;
+  const lg = $("#dailyLegend").children;
+  lg[0].append(t("counted")); lg[1].append(t("set_aside"));
+  const W = Math.max(280, host.clientWidth || 320), H = 150, left = 26, bottom = 20, top = 8;
+  const max = Math.max(4, ...days.map((d) => d.reports));
+  const step = Math.ceil(max / 4), yMax = step * 4;
+  const y = (v) => top + (H - top - bottom) * (1 - v / yMax);
+  const slot = (W - left) / days.length, bw = Math.min(24, slot * 0.62);
+  const loc = lang === "hi" ? "hi-IN" : "en-IN";
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("last14")}">`;
+  for (let v = 0; v <= yMax; v += step) svg += `<line class="grid" x1="${left}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${left - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  days.forEach((d, i) => {
+    const x = left + slot * i + (slot - bw) / 2, aside = d.reports - d.counted;
+    const yc = y(d.counted), ya = y(d.counted + aside) ;
+    svg += `<g class="col" data-i="${i}">`;
+    if (d.counted) svg += `<path fill="#2F5BEA" d="${barPath(x, yc, bw, y(0) - yc, !aside)}"/>`;
+    if (aside) svg += `<path fill="#E3A43A" d="${barPath(x, ya, bw, Math.max(1, yc - ya - (d.counted ? 2 : 0)), true)}"/>`;
+    svg += `<rect class="hit" x="${left + slot * i}" y="${top}" width="${slot}" height="${H - top}"/></g>`;
+    if (i === 0 || i === days.length - 1 || i % 4 === 0) {
+      const label = new Date(d.date + "T12:00:00").toLocaleDateString(loc, { day: "numeric", month: "short" });
+      svg += `<text class="tick" x="${x + bw / 2}" y="${H - 4}" text-anchor="middle">${label}</text>`;
+    }
+  });
+  host.innerHTML = svg + "</svg>";
+  const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; host.append(tip);
+  const show = (g) => {
+    host.querySelectorAll(".col.on").forEach((c) => c.classList.remove("on"));
+    if (!g) { tip.hidden = true; return; }
+    const d = days[Number(g.dataset.i)]; g.classList.add("on");
+    tip.innerHTML = "<b></b><span></span><br><span></span>";
+    tip.querySelector("b").textContent = new Date(d.date + "T12:00:00").toLocaleDateString(loc, { weekday: "short", day: "numeric", month: "short" });
+    const sp = tip.querySelectorAll("span");
+    sp[0].textContent = `${t("counted")}: ${d.counted}`; sp[1].textContent = `${t("set_aside")}: ${d.reports - d.counted}`;
+    const box = g.querySelector(".hit").getBoundingClientRect(), hb = host.getBoundingClientRect();
+    tip.style.left = `${Math.min(hb.width - 60, Math.max(60, box.left - hb.left + box.width / 2))}px`;
+    tip.style.top = `${Math.max(0, y(d.reports) - 6) * (hb.width / W)}px`; tip.hidden = false;
+  };
+  host.querySelectorAll(".col").forEach((g) => {
+    g.addEventListener("pointerenter", () => show(g));
+    g.addEventListener("click", () => show(g));
+  });
+  host.addEventListener("pointerleave", () => show(null));
+}
+function barPath(x, y0, w, h, roundTop) {
+  if (h <= 0) return "";
+  const r = roundTop ? Math.min(4, w / 2, h) : 0;
+  return `M${x},${y0 + h}V${y0 + r}Q${x},${y0} ${x + r},${y0}H${x + w - r}Q${x + w},${y0} ${x + w},${y0 + r}V${y0 + h}Z`;
 }
 
 // ---------------- Licence ----------------
