@@ -477,8 +477,13 @@ def main() -> int:
         gr.check("5", "served over https", "Row 5: on an https address").record(
             a.base_url.startswith("https://"), a.base_url
         )
+        started = c.get("/ready").json().get("started_at")
         for seed in a.seeds:
             run_world(c, build(seed), gr, a.workers)
+        again = c.get("/ready").json().get("started_at")
+        gr.check(
+            "5", "server never restarted during the run", "Row 5: stays up under the judges' load"
+        ).record(started == again, f"process started_at {started} -> {again}")
     text, ok = summarise(gr, a.seeds, a.base_url, time.perf_counter() - t0)
     print(text)
     a.out.mkdir(parents=True, exist_ok=True)

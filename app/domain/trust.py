@@ -145,6 +145,19 @@ def _evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
     accounts_on: dict[str, set[str]] = defaultdict(set)
     for r in rs:
         accounts_on[r.ip_key].add(r.reporter_key)
+    # Below that, two accounts on one connection that report this identifier minutes apart are one
+    # person switching accounts; neighbours on a carrier block report at unrelated times.
+    last_on: dict[str, ReportFacts] = {}
+    for r in rs:
+        prev = last_on.get(r.ip_key)
+        if (
+            prev is not None
+            and prev.reporter_key != r.reporter_key
+            and r.reported_at - prev.reported_at <= C.SAME_CONNECTION_PAIR_WINDOW
+            and groups.union(prev.id, r.id)
+        ):
+            edges["account_switch"] += 1
+        last_on[r.ip_key] = r
     first_by: dict[tuple[str, str], str] = {}
     for r in rs:
         links = [("same_reporter", r.reporter_key)]

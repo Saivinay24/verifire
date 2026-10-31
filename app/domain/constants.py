@@ -80,6 +80,7 @@ BLANK_FACTOR = 0.4
 # Pile-on gate. A real campaign's victims describe it and agree on what it was; a pile-on (the
 # brief's "40 friends reporting a real bakery") does not. Only judged with enough people to tell.
 PILE_ON_MIN_UNITS = 8
+SAME_CONNECTION_PAIR_WINDOW = timedelta(minutes=15)  # Two accounts, one connection, minutes apart.
 SAME_CONNECTION_MIN_ACCOUNTS = 3  # Two accounts on one /24 may be neighbours on a carrier; 3+ is a farm.
 PILE_ON_BLANK_SHARE = 0.75  # Real victims leave ~25% blank (measured); 3x that is a pile-on writing nothing.
 PILE_ON_MIN_NOTES = 6
