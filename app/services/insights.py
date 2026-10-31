@@ -63,7 +63,7 @@ def city_pulse(pincode: str, days: float, now: datetime) -> dict[str, Any]:
     counted = [r for r in window if _trusted(r)]
 
     by_area: dict[str, list[RowMapping]] = defaultdict(list)
-    for r in window:
+    for r in counted:
         by_area[r["pincode"]].append(r)
     trusted_8d: dict[str, list[A.TrustedReport]] = defaultdict(list)
     for r in rows:
@@ -75,10 +75,10 @@ def city_pulse(pincode: str, days: float, now: datetime) -> dict[str, Any]:
         items = by_area.get(a.pincode)
         if not items:
             continue
-        # Same count as the map: people, not rows, with one connection worth at most ~1.25 people.
+        # Counted reports only, so the areas add up to the sheet's headline. Then people, not rows,
+        # with one connection worth at most ~1.25 people.
         count = max(1, round(A.effective_count(_as_trusted(r) for r in items)))
-        types = Counter(r["scam_type"] for r in items if _trusted(r))
-        types = types or Counter(r["scam_type"] for r in items)
+        types = Counter(r["scam_type"] for r in items)
         areas.append(
             {
                 "pincode": a.pincode,

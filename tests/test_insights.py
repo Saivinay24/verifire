@@ -44,6 +44,8 @@ def test_city_counts_people_and_masks_under_three(client: TestClient) -> None:
     assert body["scam_types"][0] == {"scam_type": "digital-arrest", "count": 5, "share": 0.714}
     hsr = next(a for a in body["areas"] if a.get("pincode") == "560102")
     assert hsr["locality"] == "HSR Layout" and hsr["lat"] == 12.9116
+    assert hsr["count"] == 7 and hsr["top_scam_type"] == "digital-arrest"  # the farm adds nothing here
+    assert sum(a["count"] for a in body["areas"]) <= body["counted"]
 
 
 def test_city_feed_has_no_reporter_data_and_hour_times(client: TestClient) -> None:

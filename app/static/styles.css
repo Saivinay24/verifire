@@ -49,7 +49,7 @@ body {
 }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; padding: 0; }
-svg:not(.leaflet-zoom-animated):not(.leaflet-attribution-flag) { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8;
+svg:not(.leaflet-zoom-animated):not(.leaflet-attribution-flag):not(.chart) { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8;
       stroke-linecap: round; stroke-linejoin: round; flex: none; }
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -288,7 +288,7 @@ html[lang="en"] .lang [data-lang="en"], html[lang="hi"] .lang [data-lang="hi"] {
 
 /* ---------- Map: full screen, with the city sheet pulled up over its lower half ---------- */
 .mapview { position: fixed; inset: 0; z-index: 20; background: #E8EEF5; animation: fade .25s var(--ease); }
-#map { position: absolute; inset: 0; background: #E8EEF5; }
+#map { position: absolute; inset: 0; z-index: 0; background: #E8EEF5; } /* own stacking context keeps Leaflet panes under the sheet */
 #map .leaflet-tile-pane { filter: grayscale(0.85) brightness(1.06) contrast(0.92); }
 .map-top {
   position: absolute; z-index: 2; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 10px;
@@ -314,7 +314,7 @@ html[lang="en"] .lang [data-lang="en"], html[lang="hi"] .lang [data-lang="hi"] {
 .pull.dragging { transition: none; }
 .pull-head { padding: 6px var(--gutter) 6px; touch-action: none; cursor: grab; flex: none; }
 .pull-handle { display: block; width: 100%; padding: 6px 0 8px; }
-.pull-handle .grabber { margin: 0 auto; }
+.pull-handle .grabber { display: block; margin: 0 auto; }
 .pull-head h2 { margin: 0; font-size: 22px; letter-spacing: -0.02em; line-height: 1.15; }
 .pull-sub { margin: 4px 0 0; color: var(--ink-2); font-size: 14.5px; }
 .pull-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 4px var(--gutter) calc(var(--safe-b) + 24px); }

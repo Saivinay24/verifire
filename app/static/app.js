@@ -50,7 +50,7 @@ const T = {
     newtype: (a, t) => `New scam near ${a}: ${t}.`,
     reports_n: (n) => `${n} ${n === 1 ? "report" : "reports"}`,
     ago_min: (n) => `${n} min ago`, ago_h: (n) => `${n} h ago`, ago_d: (n) => `${n} d ago`,
-    say_it: "Say it", listening: "Listening. Tap to stop", mic_hint: "Listening. Speak in English or Hindi. Your phone turns it into text.",
+    say_it: "Say it", listening: "Listening. Tap to stop", mic_hint: "Listening. Speak in English or Hindi. Your browser turns it into text. Don't say your name or number.",
     mic_denied: "Allow the microphone to speak your note.", mic_fail: "Couldn't hear that. Type it instead.",
     prepare_complaint: "Prepare my complaint", c_title: "Your complaint, ready to send",
     c_sub: "Written from your report. Fill in the parts in [brackets]. It stays on your phone.",
@@ -140,7 +140,7 @@ const T = {
     newtype: (a, t) => `${a} के पास नया स्कैम: ${t}।`,
     reports_n: (n) => `${n} रिपोर्ट`,
     ago_min: (n) => `${n} मिनट पहले`, ago_h: (n) => `${n} घंटे पहले`, ago_d: (n) => `${n} दिन पहले`,
-    say_it: "बोलकर बताएं", listening: "सुन रहे हैं। रोकने के लिए दबाएं", mic_hint: "सुन रहे हैं। हिंदी या अंग्रेज़ी में बोलें। आपका फ़ोन इसे लिख देगा।",
+    say_it: "बोलकर बताएं", listening: "सुन रहे हैं। रोकने के लिए दबाएं", mic_hint: "सुन रहे हैं। हिंदी या अंग्रेज़ी में बोलें। आपका ब्राउज़र इसे लिख देगा। अपना नाम या नंबर न बोलें।",
     mic_denied: "बोलकर लिखने के लिए माइक्रोफ़ोन की अनुमति दें।", mic_fail: "सुनाई नहीं दिया। लिखकर बताएं।",
     prepare_complaint: "मेरी शिकायत तैयार करें", c_title: "आपकी शिकायत, भेजने के लिए तैयार",
     c_sub: "आपकी रिपोर्ट से लिखी गई है। [ब्रैकेट] वाली जगह भरें। यह आपके फ़ोन पर ही रहती है।",
@@ -584,14 +584,15 @@ $("#micBtn").addEventListener("click", () => {
 // they copy it into cybercrime.gov.in, share it, or email it from their own mail app.
 let lastReport = null;
 function fmtValue(kind, v) {
-  const m = kind === "phone" && /^\+91(\d{5})(\d{5})$/.exec(v);
+  // What the person typed, shown the way a bank or police form expects an Indian mobile number.
+  const m = kind === "phone" && /^(?:\+?91|0)?(\d{5})(\d{5})$/.exec(v.replace(/[\s-]/g, ""));
   return m ? `+91 ${m[1]} ${m[2]}` : v;
 }
 function complaintDraft() {
   const r = lastReport, loc = lang === "hi" ? "hi-IN" : "en-IN";
   const ch = CHANNELS.find((c) => c.id === r.channel);
   return t("complaint", {
-    type: typeInfo(r.scam_type)[lang], channel: ch ? ch[lang] : r.channel, kind: T[lang].kinds[r.kind],
+    type: typeInfo(r.scam_type)[lang], channel: ch ? ch[lang] : r.channel, kind: T[lang].kinds[r.kind].replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase()),  // "phone", "link", "UPI ID"
     value: fmtValue(r.kind, r.identifier_value), note: r.note,
     amount: r.amount_lost_inr ? r.amount_lost_inr.toLocaleString("en-IN") : "",
     date: r.occurred.toLocaleDateString(loc, { day: "numeric", month: "short", year: "numeric" }),
@@ -811,7 +812,7 @@ async function drawMap(city, a) {
       if (c.spike) L.marker([c.lat, c.lng], { icon: L.divIcon({ className: "", html: '<div class="spike-pin"></div>', iconSize: [18, 18] }), interactive: false }).addTo(layer);
       pts.push([c.lat, c.lng]);
     });
-    L.circleMarker([a.lat, a.lng], { radius: 7, color: "#2F5BEA", weight: 3, fillColor: "#fff", fillOpacity: 1 }).addTo(layer);
+    L.circleMarker([a.lat, a.lng], { radius: 7, color: "#2F5BEA", weight: 3, fillColor: "#fff", fillOpacity: 1, pane: "markerPane" }).addTo(layer);
     // Keep every point above the sheet: pad the bottom by the sheet's height.
     const bottom = pull.getBoundingClientRect().height + 16;
     if (pts.length > 1) map.fitBounds(pts, { paddingTopLeft: [24, 80], paddingBottomRight: [24, bottom], maxZoom: 14 });
@@ -893,7 +894,7 @@ function renderDaily(days) {
   const y = (v) => top + (H - top - bottom) * (1 - v / yMax);
   const slot = (W - left) / days.length, bw = Math.min(24, slot * 0.62);
   const loc = lang === "hi" ? "hi-IN" : "en-IN";
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("last14")}">`;
+  let svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("last14")}">`;
   for (let v = 0; v <= yMax; v += step) svg += `<line class="grid" x1="${left}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${left - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
   days.forEach((d, i) => {
     const x = left + slot * i + (slot - bw) / 2, aside = d.reports - d.counted;
@@ -902,7 +903,7 @@ function renderDaily(days) {
     if (d.counted) svg += `<path fill="#2F5BEA" d="${barPath(x, yc, bw, y(0) - yc, !aside)}"/>`;
     if (aside) svg += `<path fill="#E3A43A" d="${barPath(x, ya, bw, Math.max(1, yc - ya - (d.counted ? 2 : 0)), true)}"/>`;
     svg += `<rect class="hit" x="${left + slot * i}" y="${top}" width="${slot}" height="${H - top}"/></g>`;
-    if (i === 0 || i === days.length - 1 || i % 4 === 0) {
+    if ((days.length - 1 - i) % 4 === 0) {
       const label = new Date(d.date + "T12:00:00").toLocaleDateString(loc, { day: "numeric", month: "short" });
       svg += `<text class="tick" x="${x + bw / 2}" y="${H - 4}" text-anchor="middle">${label}</text>`;
     }

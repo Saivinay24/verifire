@@ -10,8 +10,8 @@ Layers checked after loading full judge worlds:
   1. Database: every column of every table, scanned for any raw reporter_id, IP prefix or note text.
   2. Keyed hashes: stored reporter / IP keys are not a plain (unkeyed) hash anyone could recompute.
   3. Server logs: scanned for reporter ids, IP prefixes, notes and identifier values.
-  4. Every API reply (lookup in every spelling, map for every area and radius, alerts, report
-     replies, errors, licence, areas): scanned for the same, and masking checked under 3 people,
+  4. Every API reply (lookup in every spelling, map for every area and radius, alerts, city sheet,
+     live stats, report replies, errors, licence, areas): scanned for the same, and masking checked under 3 people,
      including one person reporting many times and 22 accounts on one Wi-Fi.
   5. Error replies never echo the input back.
   6. The app: never sends coordinates to the server, and has no accusing words in either language.
@@ -103,6 +103,7 @@ def main() -> int:
             found = leaks(text, rids, ips, notes)
             au.check("4. report replies leak nothing", not found, str(found[:3]))
         by_val: dict[tuple[str, str], set[str]] = defaultdict(set)
+        hidden: set[str] = set()  # full values the lookup kept masked; the city sheet must too
         for e in w.expects:
             for v in e.variants or [e.raw]:
                 body = c.get("/lookup", params={"type": e.id_type, "value": v})
@@ -118,10 +119,12 @@ def main() -> int:
                 if b["distinct_reporters"] < 3 and e.kind != "verified" and e.canonical:
                     full = e.canonical[3:] if e.id_type == "phone" else e.canonical.lower().removeprefix("https://")
                     au.check(f"4. hidden under 3 people ({e.kind})", full not in text.lower(), f"{e.scenario} {e.canonical} shown as {b['display_value']}")
+                    hidden.add(full)
                 if e.kind == "attack" and e.canonical:
                     full = e.canonical[3:] if e.id_type == "phone" else e.canonical.lower().removeprefix("https://")
                     au.check("4. attacked numbers are never unmasked (spam, fake accounts, friends)", full not in text.lower(),
                              f"{e.scenario} report_count={b['report_count']} distinct={b['distinct_reporters']} shown {b['display_value']}")
+                    hidden.add(full)
                 low = json.dumps(b, ensure_ascii=False).lower()
                 au.check("4. no accusing words in lookup replies", not [x for x in ACCUSING_EN if x in low], b.get("summary", ""))
         for pin in AREAS:
@@ -133,6 +136,26 @@ def main() -> int:
                     au.check("4. every map point is an official area point", (cl["lat"], cl["lng"]) == (la, lo), str(cl))
             text = c.get("/alerts", params={"pincode": pin}).text
             au.check("4. alert replies leak nothing", not leaks(text, rids, ips, notes))
+        feed_keys = {"occurred_at", "channel", "scam_type", "pincode", "locality", "identifier_type", "display_value", "verdict"}
+        for pin in AREAS:
+            for days in (1, 7, 90):
+                text = c.get("/city", params={"pincode": pin, "days": days}).text
+                low = text.lower()
+                au.check("4. city sheet replies leak nothing", not leaks(text, rids, ips, notes))
+                shown = sorted(h for h in hidden if h and h in low)
+                au.check("4. city sheet never shows a number the lookup keeps hidden", not shown, f"{pin}: {shown[:3]}")
+                b = json.loads(text)
+                for item in b["recent"]:
+                    au.check("4. city feed has only time, channel, type, area, masked value", set(item) <= feed_keys, str(sorted(item)))
+                    au.check("4. city feed times are rounded to the hour", item["occurred_at"][14:19] == "00:00", item["occurred_at"])
+                for ar in b["areas"]:
+                    _, _, la, lo = AREAS[ar["pincode"]]
+                    au.check("4. every city sheet point is an official area point", (ar["lat"], ar["lng"]) == (la, lo), str(ar))
+                au.check("4. no accusing words in city sheet replies", not [x for x in ACCUSING_EN if x in low])
+        for days in (1, 30, 365):
+            text = c.get("/stats", params={"days": days}).text
+            au.check("4. stats replies leak nothing", not leaks(text, rids, ips, notes))
+            au.check("4. stats never name a number", not [h for h in hidden if h and h in text.lower()])
         for path in ("/license", "/health", "/ready", "/areas"):
             au.check("4. other replies leak nothing", not leaks(c.get(path).text, rids, ips, notes), path)
 

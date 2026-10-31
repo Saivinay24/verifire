@@ -9,6 +9,12 @@ People report scam calls, SMS, UPI ids and links in a few taps, with no login. A
 - **App:** the same address on any phone. It is a mobile website you can add to the home screen, in English and Hindi.
 - **Code:** https://github.com/Saivinay24/cyberforge-scammap
 
+What the app does on top of the brief:
+- **Say it instead of typing.** The note box takes speech in English or Hindi, turned into text by the browser's speech service (in Chrome, that is Google's), never by our server. VeriFire stores only the note's fingerprint, never the words, the same as a typed note.
+- **Prepare my complaint.** After a report, the app writes a complaint from it, with blanks in [brackets] for the person to fill in. They can copy it, share it, open it as an email to their bank, or open cybercrime.gov.in. Nothing is sent by our server. If money was lost, it leads with "Call 1930 first".
+- **The city at a glance.** The map fills the screen. A sheet pulls up over it with alerts, trending scam types, numbers 3 or more people reported, each area's count, and a recent feed. Everything on it comes only from reports the trust engine counted, so a fake-account farm adds nothing.
+- **Live on VeriFire.** A statistics page for the last 7, 30 or 90 days: reports counted against reports set aside, a 14-day chart, and breakdowns by scam type, channel and city. Next to it sit official national figures, quoted with their source.
+
 ## Contents
 
 1. [Run it](#run-it)
@@ -109,6 +115,8 @@ The seven addresses from Appendix A have no login, as the brief asks.
 | `GET /lookup?type=&value=` | The verdict for a number, UPI id, link or SMS sender |
 | `GET /map?pincode=&days=&radius_km=` | Scam clusters near an area (defaults: 7 days, 2 km) |
 | `GET /alerts?pincode=` | `SPIKE` and `NEW_TYPE` alerts for an area |
+| `GET /city?pincode=&days=` | The app's city sheet: hot areas, trending types, known scam numbers, recent feed (default 7 days). Extra, not in Appendix A |
+| `GET /stats?days=` | Live totals and breakdowns, counted after the trust rules (default 30 days). Extra, not in Appendix A |
 | `POST /admin/reset` | Deletes every report |
 | `POST /challenges` | A business disputes a number (bonus) |
 | `GET /license`, `POST /license` | Show or replace the licence |
@@ -173,6 +181,8 @@ Full detail:
 - **No exact location.** The map shows only the official point for each area (Appendix B). On the phone, "near me" picks the nearest area on the phone itself and sends only the area code.
 - **Masking.** A number reported by fewer than 3 different people is shown masked, like `98XXXXX222`.
 - **Evidence** in a lookup shows only the time, channel, scam type and area. It never shows who reported, their IP, or their note.
+- **The city sheet and stats** follow the same rules. A number shows in full only where the lookup would show it in full. Feed times are rounded to the hour, and every point is an official area point.
+- **Speech and complaints stay on the phone.** Speech is turned into text by the browser's own speech service, and no audio reaches our server. The complaint is built on the phone and goes only where the person sends it.
 - **Logs** keep only an allowed list of fields. They hold no reporter, IP, note or reported number.
 - **Careful wording:** "Reported by 5 people", never "fraudster". This applies in English and Hindi.
 - **No login, no accounts, no analytics, no scraping.**
