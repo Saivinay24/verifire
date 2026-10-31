@@ -183,9 +183,12 @@
     </div>
 
     <div class="step step-done" data-step="4">
-      <div class="done-mark"><svg aria-hidden="true"><use href="#i-check"/></svg></div>
-      <h2 data-t="done_title">Report sent</h2>
-      <p data-t="done_sub">Thank you. It helps the next person spot this scam.</p>
+      <div class="done-anim" aria-hidden="true">
+        <i class="ring"></i><i class="ring r2"></i><span class="spark" style="--a:0deg"></span><span class="spark" style="--a:45deg"></span><span class="spark" style="--a:90deg"></span><span class="spark" style="--a:135deg"></span><span class="spark" style="--a:180deg"></span><span class="spark" style="--a:225deg"></span><span class="spark" style="--a:270deg"></span><span class="spark" style="--a:315deg"></span>
+        <svg class="burst" viewBox="0 0 80 80"><circle cx="40" cy="40" r="38"/><path d="M23.5 41.5l11 11 22-24"/></svg>
+      </div>
+      <h2 class="done-in" data-t="done_title">Thank you</h2>
+      <p class="done-in" id="doneSub"></p>
       <a class="pill pill-strong" href="tel:1930"><svg aria-hidden="true"><use href="#i-phone"/></svg><span data-t="call1930">Lost money? Call 1930</span></a>
       <button class="pill" id="openComplaint" type="button"><svg aria-hidden="true"><use href="#i-doc"/></svg><span data-t="prepare_complaint">Prepare my complaint</span></button>
       <button class="primary" id="doneBtn" type="button" data-t="done">Done</button>

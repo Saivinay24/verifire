@@ -23,7 +23,7 @@ const T = {
     when: "When?", where: "Your area", choose_area: "Choose area", use_location: "Near me",
     add_note: "Add what happened (optional)", note_placeholder: "In your own words. Don't write your name or number.",
     lost_money: "Money lost (optional)", send: "Send report",
-    done_title: "Report sent", done_sub: "Thank you. It helps the next person spot this scam.",
+    done_title: "Thank you", done_sub: (a) => `Report sent. You just helped warn the next person in ${a} who checks this number.`,
     file_complaint: "File a complaint on cybercrime.gov.in", done: "Done", not_sure: "Not sure, skip",
     map_title: "Scams reported nearby", map_sub: "Last 7 days, grouped by area. Never anyone's exact location.",
     dispute_title: "Ask for a review",
@@ -118,7 +118,7 @@ const T = {
     when: "कब?", where: "आपका इलाका", choose_area: "इलाका चुनें", use_location: "मेरे पास",
     add_note: "क्या हुआ, लिखें (ज़रूरी नहीं)", note_placeholder: "अपने शब्दों में। अपना नाम या नंबर न लिखें।",
     lost_money: "कितने पैसे गए (ज़रूरी नहीं)", send: "रिपोर्ट भेजें",
-    done_title: "रिपोर्ट भेज दी गई", done_sub: "धन्यवाद। इससे अगले व्यक्ति को यह स्कैम पहचानने में मदद मिलेगी।",
+    done_title: "धन्यवाद", done_sub: (a) => `रिपोर्ट भेज दी गई। ${a} में इस नंबर को जांचने वाले अगले व्यक्ति को आपने सावधान कर दिया।`,
     file_complaint: "cybercrime.gov.in पर शिकायत दर्ज करें", done: "ठीक है", not_sure: "पता नहीं, आगे बढ़ें",
     map_title: "आसपास रिपोर्ट किए गए स्कैम", map_sub: "पिछले 7 दिन, इलाके के हिसाब से। किसी की सटीक जगह कभी नहीं।",
     dispute_title: "जांच के लिए कहें",
@@ -606,6 +606,8 @@ $("#reportForm").addEventListener("submit", async (e) => {
   try {
     await api("/reports", { method: "POST", body: JSON.stringify(payload) });
     lastReport = { ...payload, kind, occurred, area: a };
+    $("#doneSub").textContent = t("done_sub", a.locality);
+    try { navigator.vibrate?.(35); } catch { /* no haptics here */ }
     go(4); refreshAlerts();
   } catch (ex) {
     if (!(ex instanceof LicenceExpired)) ex.status === 400 ? err(t("invalid")) : toast(ex.message);
