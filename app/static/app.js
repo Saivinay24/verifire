@@ -2,6 +2,8 @@
 // Privacy: the app never sends GPS. "Near me" picks the nearest supported area on this device
 // and sends only its pincode. The reporter id is a random anonymous token kept on this device.
 
+import { detectKind, extractIds, looksLikeMessage, redFlags } from "./ids.js";
+
 const $ = (sel) => document.querySelector(sel);
 
 // ---------------- Words (English / Hindi) ----------------
@@ -35,9 +37,25 @@ const T = {
     expired_title: "Licence expired. Contact your provider.",
     expired_sub: "Your data is safe. The app works again as soon as a new licence is added.", retry: "Try again",
     when_now: "Just now", when_today: "Today", when_yday: "Yesterday", when_week: "This week",
-    kinds: { phone: "Phone", upi: "UPI ID", url: "Link", sender_id: "SMS sender" },
+    kinds: { phone: "Phone", upi: "UPI ID", url: "Link", sender_id: "SMS sender", message: "Message" },
     v_KNOWN_SCAM: "Reported as a scam", v_SUSPICIOUS: "Be careful", v_NO_REPORTS: "No reports yet",
     v_VERIFIED_BUSINESS: "Verified",
+    msg_title: "In this message", msg_sub: "Read on your phone with fixed rules. The message itself is not sent anywhere.",
+    msg_bad: "This looks like a scam", msg_warn: "Be careful with this message", msg_ok: "Nothing alarming found",
+    msg_bad_sub: (n) => `${n} warning signs below.`, msg_warn_sub: "One warning sign below.",
+    msg_ok_sub: "That doesn't make it safe. If someone asks for money or an OTP, stop and check.",
+    msg_ids: "Numbers and links in it", msg_flags: "Warning signs", msg_show: "Show the message with the parts we found",
+    msg_report: "Report this message", msg_checking: "Checking", msg_noids: "No number, UPI ID or link found in it.",
+    flag_otp: "Mentions an OTP, PIN or CVV. Never share these, not even with \u201cbank staff\u201d.",
+    flag_arrest: "Police or legal threats. Real police never ask for money on a call or message.",
+    flag_urgent: "Rushes you. A short deadline is meant to stop you from checking first.",
+    flag_blocked: "Says your account, KYC or connection will be blocked.",
+    flag_prize: "A prize, lottery or cashback you didn't apply for.",
+    flag_pay: "Asks you to pay a fee or deposit, or to scan a QR.",
+    flag_remote: "Asks you to install a screen-sharing app or an APK file.",
+    flag_secret: "Tells you to keep it secret or stay on the call.",
+    flag_job: "An easy-money job or task offer.",
+    flag_link: "Has a link. Banks and the government don't send KYC or payment links by SMS.",
     reported_by: (n) => `Reported by ${n} ${n === 1 ? "person" : "people"} near you`,
     no_reports_sub: "Nobody near you has reported this yet. Still never share an OTP or pay to receive money.",
     verified_sub: (o) => `Official number of ${o}.`,
@@ -138,9 +156,25 @@ const T = {
     expired_title: "लाइसेंस समाप्त हो गया। अपने प्रदाता से संपर्क करें।",
     expired_sub: "आपका डेटा सुरक्षित है। नया लाइसेंस जुड़ते ही ऐप फिर से चलेगा।", retry: "फिर कोशिश करें",
     when_now: "अभी", when_today: "आज", when_yday: "कल", when_week: "इस हफ्ते",
-    kinds: { phone: "फ़ोन", upi: "UPI ID", url: "लिंक", sender_id: "SMS भेजने वाला" },
+    kinds: { phone: "फ़ोन", upi: "UPI ID", url: "लिंक", sender_id: "SMS भेजने वाला", message: "मैसेज" },
     v_KNOWN_SCAM: "स्कैम के रूप में रिपोर्ट किया गया", v_SUSPICIOUS: "सावधान रहें", v_NO_REPORTS: "अभी कोई रिपोर्ट नहीं",
     v_VERIFIED_BUSINESS: "सत्यापित",
+    msg_title: "इस मैसेज में", msg_sub: "आपके फ़ोन पर तय नियमों से पढ़ा गया। मैसेज कहीं भेजा नहीं जाता।",
+    msg_bad: "यह स्कैम लगता है", msg_warn: "इस मैसेज से सावधान रहें", msg_ok: "कुछ खतरनाक नहीं मिला",
+    msg_bad_sub: (n) => `नीचे ${n} चेतावनी संकेत हैं।`, msg_warn_sub: "नीचे एक चेतावनी संकेत है।",
+    msg_ok_sub: "इसका मतलब यह सुरक्षित नहीं है। अगर कोई पैसे या OTP माँगे, तो रुकें और जाँचें।",
+    msg_ids: "इसमें नंबर और लिंक", msg_flags: "चेतावनी संकेत", msg_show: "मैसेज देखें, मिले हुए हिस्सों के साथ",
+    msg_report: "यह मैसेज रिपोर्ट करें", msg_checking: "जाँच रहे हैं", msg_noids: "इसमें कोई नंबर, UPI ID या लिंक नहीं मिला।",
+    flag_otp: "OTP, PIN या CVV की बात है। इन्हें कभी किसी को न बताएँ, \u201cबैंक वाले\u201d को भी नहीं।",
+    flag_arrest: "पुलिस या कानूनी धमकी। असली पुलिस कॉल या मैसेज पर पैसे नहीं माँगती।",
+    flag_urgent: "जल्दबाज़ी करवाता है, ताकि आप रुककर जाँच न करें।",
+    flag_blocked: "कहता है कि आपका खाता, KYC या कनेक्शन बंद हो जाएगा।",
+    flag_prize: "इनाम, लॉटरी या कैशबैक जिसके लिए आपने कभी आवेदन नहीं किया।",
+    flag_pay: "फ़ीस, डिपॉज़िट भरने या QR स्कैन करने को कहता है।",
+    flag_remote: "स्क्रीन-शेयरिंग ऐप या APK फ़ाइल इंस्टॉल करने को कहता है।",
+    flag_secret: "बात छिपाने या कॉल पर बने रहने को कहता है।",
+    flag_job: "आसान कमाई वाली नौकरी या टास्क का ऑफ़र।",
+    flag_link: "इसमें लिंक है। बैंक और सरकार SMS में KYC या पेमेंट लिंक नहीं भेजते।",
     reported_by: (n) => `आपके पास ${n} लोगों ने रिपोर्ट किया`,
     no_reports_sub: "अभी तक आपके पास किसी ने इसकी रिपोर्ट नहीं की। फिर भी OTP कभी न बताएं, पैसे पाने के लिए भुगतान न करें।",
     verified_sub: (o) => `${o} का आधिकारिक नंबर।`,
@@ -309,55 +343,6 @@ function isoLocal(d) {
     `${pad(d.getSeconds())}${sign}${pad(off / 60)}:${pad(off % 60)}`;
 }
 
-// The same rules the server uses (app/domain/identifiers.py), so the arrow lights only for a value
-// the server will accept: an Indian number, a UPI ID, a real link or a 6-letter SMS sender.
-function validPhone(raw) {
-  let v = raw.replace(/[\s\-(). ]/g, "");
-  if (v.startsWith("+")) { v = v.slice(1); if (!v.startsWith("91")) return false; }
-  if (!/^\d+$/.test(v)) return false;
-  if ((v.startsWith("1800") || v.startsWith("1860")) && v.length >= 8 && v.length <= 11) return true;
-  if (v.startsWith("1") && v.length >= 3 && v.length <= 6) {
-    const steps = new Set([...v].slice(1).map((d, i) => (Number(d) - Number(v[i]) + 10) % 10));
-    const run = steps.size === 1 && (steps.has(1) || steps.has(9));
-    return !(v.length >= 4 && (run || new Set(v).size < 2));  // 1930 yes; 1234, 1111 no
-  }
-  if (v.startsWith("0091") && v.length === 14) v = v.slice(4);
-  else if (v.startsWith("91") && v.length === 12) v = v.slice(2);
-  else if (v.startsWith("0") && v.length === 11) v = v.slice(1);
-  return v.length === 10 && !"01".includes(v[0]) && new Set(v).size >= 3;
-}
-function validUpi(raw) {
-  let v = raw.trim();
-  if (/^upi:\/\/pay\?/i.test(v)) {
-    const pa = new URLSearchParams(v.split("?")[1] || "").get("pa"); v = pa || "";
-  }
-  v = v.replace(/\s+/g, "").toLowerCase();
-  return /^[a-z0-9._-]{2,256}@[a-z][a-z0-9.]{1,63}$/.test(v);
-}
-function validUrl(raw) {
-  let v = raw.trim();
-  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) v = "https://" + v;
-  try {
-    const u = new URL(v);
-    if (!["http:", "https:"].includes(u.protocol)) return false;
-    const host = u.hostname.replace(/\.$/, "").replace(/^www\./, "");
-    return /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(host);
-  } catch { return false; }
-}
-function validSender(raw) {
-  const v = raw.replace(/\s+/g, "").toUpperCase().replace(/^[A-Z]{2}-/, "").replace(/-[PSTG]$/, "");
-  return /^[A-Z]{6}$/.test(v);
-}
-function detectKind(raw) {
-  const v = raw.trim();
-  if (!v) return null;
-  if (v.includes("@") || /^upi:\/\//i.test(v)) return validUpi(v) ? "upi" : null;
-  if (/^[+\d\s\-(). ]+$/.test(v)) return validPhone(v) ? "phone" : null;
-  if (/^([a-z]{2}-)?[a-z]{6}(-[pstg])?$/i.test(v)) return "sender_id";
-  if (/^https?:\/\//i.test(v) || /\.[a-z]{2,}/i.test(v)) return validUrl(v) ? "url" : null;
-  return null;
-}
-
 let toastTimer;
 function toast(msg) {
   const el = $("#toast");
@@ -478,11 +463,18 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ---------------- Check ----------------
+// The home box also takes a whole message: it lights up when the message has something to check
+// (a number, UPI ID or link) or a warning sign in it.
+function messageKind(raw) {
+  if (!looksLikeMessage(raw)) return null;
+  return extractIds(raw).length || redFlags(raw).length ? "message" : null;
+}
 function updateKind(input, chip) {
-  const k = detectKind(input.value);
+  const home = input === $("#checkInput");
+  const k = detectKind(input.value) || (home ? messageKind(input.value) : null);
   chip.hidden = !k; if (k) chip.textContent = T[lang].kinds[k];
-  // The arrow lights up only once the value is a real number, UPI ID, link or sender.
-  if (input === $("#checkInput")) $("#checkBtn").disabled = !k;
+  // The arrow lights up only once the value is a real number, UPI ID, link, sender or message.
+  if (home) $("#checkBtn").disabled = !k;
   return k;
 }
 $("#checkInput").addEventListener("input", () => updateKind($("#checkInput"), $("#kindChip")));
@@ -490,7 +482,8 @@ $("#checkInput").addEventListener("input", () => updateKind($("#checkInput"), $(
 async function pasteInto(input, chip) {
   try {
     const text = await navigator.clipboard.readText();
-    if (text) { input.value = text.trim().slice(0, 300); updateKind(input, chip); input.dispatchEvent(new Event("input")); }
+    const max = input === $("#checkInput") ? 2000 : 300;
+    if (text) { input.value = text.trim().replace(/\s*\n\s*/g, " ").slice(0, max); updateKind(input, chip); input.dispatchEvent(new Event("input")); }
   } catch { input.focus(); toast(t("paste_hint")); }
 }
 $("#pasteBtn").addEventListener("click", () => pasteInto($("#checkInput"), $("#kindChip")));
@@ -500,6 +493,7 @@ $("#checkForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const value = $("#checkInput").value.trim();
   const kind = detectKind(value);
+  if (!kind && messageKind(value)) { openMessage(value); return; }
   if (!kind) { toast(t("invalid")); return; }
   $("#checkBtn").disabled = true;
   try {
@@ -562,6 +556,102 @@ function showResult(r) {
   openSheet("#resultSheet");
 }
 $("#reportThis").addEventListener("click", () => { closeSheet("#resultSheet"); openFlow(lastChecked?.value || ""); });
+
+// ---------------- Pasted message ----------------
+// The message is read here on the phone. Only the numbers and links pulled out of it are looked
+// up, exactly as if the person had typed each one; the text itself never leaves the device.
+const KIND_ICON = { phone: "#i-phone", upi: "#i-rupee", url: "#i-globe", sender_id: "#i-chat" };
+let lastMessage = null;
+
+function markedText(text, ranges) {
+  // Merge overlapping ranges, then build text nodes and <mark>s (never innerHTML).
+  const rs = ranges.filter((r) => r.len > 0).sort((a, b) => a.at - b.at);
+  const merged = [];
+  rs.forEach((r) => {
+    const last = merged[merged.length - 1];
+    if (last && r.at <= last.at + last.len) last.len = Math.max(last.len, r.at + r.len - last.at);
+    else merged.push({ ...r });
+  });
+  const frag = document.createDocumentFragment();
+  let i = 0;
+  merged.forEach((r) => {
+    if (r.at > i) frag.append(text.slice(i, r.at));
+    const m = document.createElement("mark"); m.className = r.cls; m.textContent = text.slice(r.at, r.at + r.len);
+    frag.append(m); i = r.at + r.len;
+  });
+  frag.append(text.slice(i));
+  return frag;
+}
+
+function openMessage(text) {
+  const ids = extractIds(text);
+  const flags = redFlags(text, ids.some((x) => x.kind === "url"));
+  lastMessage = { text, ids };
+  const results = new Array(ids.length).fill(null);
+
+  const verdict = () => {
+    const reported = results.some((r) => r && r.verdict === "KNOWN_SCAM");
+    const n = flags.length;
+    const v = reported || n >= 2 ? "KNOWN_SCAM" : n === 1 || results.some((r) => r?.verdict === "SUSPICIOUS") ? "SUSPICIOUS" : "NO_REPORTS";
+    const card = $("#msgVerdict"); card.dataset.v = v;
+    $("#msgVerdictUse").setAttribute("href", { KNOWN_SCAM: "#i-shield-x", SUSPICIOUS: "#i-alert", NO_REPORTS: "#i-search" }[v]);
+    $("#msgVerdictTitle").textContent = t({ KNOWN_SCAM: "msg_bad", SUSPICIOUS: "msg_warn", NO_REPORTS: "msg_ok" }[v]);
+    const signs = n >= 2 ? t("msg_bad_sub", n) : n === 1 ? t("msg_warn_sub") : "";
+    $("#msgVerdictSub").textContent = reported
+      ? `${t("reported_by", Math.max(...results.map((r) => (r?.verdict === "KNOWN_SCAM" ? r.distinct_reporters : 0))))}. ${signs}`.trim()
+      : signs || t("msg_ok_sub");
+  };
+
+  const list = $("#msgIds"); list.replaceChildren();
+  if (!ids.length) emptyLine(list, t("msg_noids"));
+  ids.forEach((it, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "msg-id";
+    b.innerHTML = `<span class="d-icon"><svg aria-hidden="true"><use href="${KIND_ICON[it.kind]}"/></svg></span>`
+      + `<span class="grow"><small></small><b></b></span><span class="badge"></span><svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>`;
+    b.querySelector("small").textContent = T[lang].kinds[it.kind];
+    b.querySelector("b").textContent = it.value;
+    const badge = b.querySelector(".badge"); badge.textContent = t("msg_checking");
+    b.addEventListener("click", () => {
+      if (!results[i]) return;
+      lastChecked = { kind: it.kind, value: it.value };
+      closeSheet("#msgSheet"); showResult(results[i]);
+    });
+    list.append(b);
+    api(`/lookup?type=${encodeURIComponent(it.kind)}&value=${encodeURIComponent(it.value)}`).then((r) => {
+      results[i] = r; badge.dataset.v = r.verdict; badge.textContent = t("v_" + r.verdict); verdict();
+    }).catch(() => { badge.textContent = "–"; });
+  });
+
+  const fl = $("#msgFlags"); fl.replaceChildren();
+  $("#msgFlagsHead").hidden = !flags.length;
+  flags.forEach((f) => {
+    const li = document.createElement("li");
+    const p = document.createElement("p"); p.textContent = t("flag_" + f.id); li.append(p);
+    const words = [...new Map(f.hits.map((h) => [h.text.toLowerCase(), h.text])).values()].slice(0, 3);
+    if (words.length) {
+      const q = document.createElement("span"); q.className = "said";
+      words.forEach((w) => { const m = document.createElement("q"); m.textContent = w; q.append(m); });
+      li.append(q);
+    }
+    fl.append(li);
+  });
+
+  const ranges = flags.flatMap((f) => f.hits.map((h) => ({ at: h.at, len: h.len, cls: "flag" })))
+    .concat(ids.map((x) => ({ at: x.at, len: x.value.length, cls: "id" })));
+  $("#msgText").replaceChildren(markedText(text, ranges));
+  $("#msgShow").open = false;
+  $("#msgReport").hidden = !ids.length;
+  verdict();
+  openSheet("#msgSheet");
+}
+$("#msgReport").addEventListener("click", () => {
+  if (!lastMessage?.ids.length) return;
+  closeSheet("#msgSheet");
+  openFlow(lastMessage.ids[0].value);
+  // The message becomes the report's note, which the server turns into a fingerprint and forgets.
+  $("#reportNote").value = lastMessage.text.slice(0, 600);
+  $("#noteBody").hidden = false; $("#noteToggle").setAttribute("aria-expanded", "true");
+});
 
 // ---------------- Report flow ----------------
 const draft = { channel: null, type: null, when: 0 };

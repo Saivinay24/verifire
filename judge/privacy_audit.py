@@ -183,7 +183,8 @@ def main() -> int:
                  f"{len(log)} bytes")  # fmt: skip
 
     # ---- 6: the app itself
-    js = (Path(__file__).parent.parent / "app/static/app.js").read_text()
+    static = Path(__file__).parent.parent / "app/static"
+    js = "\n".join((static / f).read_text() for f in ("app.js", "ids.js"))
     sends = re.findall(r'api\(\s*"/reports"[^;]*', js) + re.findall(r"JSON\.stringify\(([^)]*)\)", js)
     au.check("6. app never sends coordinates (only the area code)", not any(k in " ".join(sends) for k in ("latitude", "longitude", "coords", "la,", "lo,")), str(sends)[:200])
     geo = js[js.find("getCurrentPosition"): js.find("getCurrentPosition") + 900]
