@@ -17,6 +17,13 @@ NOTE_DUP_MIN_CHARS = 15  # Short notes ("scam", "fraud call") collide by chance;
 BURST_WINDOW = timedelta(minutes=60)
 BURST_MIN_REPORTS = 8  # A burst smaller than this is too small to call coordinated.
 BURST_MIN_DIVERSITY = 0.5  # < half the notes distinct (blank counts as one) = lockstep brigade.
+# Coordinated burst: a burst with no proof of harm AND a behavioural tell is one actor.
+# Each tell alone is weak; real victims essentially never show one at scale with zero evidence.
+COORD_MAX_EVIDENCE_SHARE = 0.15  # Under 15% of the burst has a screenshot or a stated loss...
+COORD_INSTANT_LAG = timedelta(minutes=2)  # ...and >= 80% filed within 2 min of the "incident"
+COORD_INSTANT_SHARE = 0.8  # (victims of a 3-hour call do not report 30 s later), or
+COORD_UNIFORM_CV = 0.05  # note lengths as even as generated text, or
+COORD_SCATTER_SHARE = 0.5  # no scam type covers half the burst (one number runs one script).
 
 # --- Step 2: per-reporter weight -----------------------------------------------------------
 NOTE_SHORT_CHARS = 10
@@ -57,7 +64,7 @@ SYNC_REPORTED_IQR = timedelta(minutes=20)
 SYNC_RATIO = 4.0  # occurred_at spread > 4x reported_at spread: back-dated brigade.
 SYNC_FACTOR = 0.7
 STYLE_MIN_NOTES = 8  # Length spread over fewer notes is noise.
-STYLE_MAX_CV = 0.18  # Note lengths this uniform look templated or machine-written.
+STYLE_MAX_CV = 0.06  # Below every genuine sample in the harness (p5 0.07); batch text sits ~0.03.
 STYLE_FACTOR = 0.8
 COORDINATION_MIN_UNITS = 8
 COORDINATION_MAX_SHARE = 0.5  # Fast wave where most reporters collapsed into shared groups...

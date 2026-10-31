@@ -137,6 +137,27 @@ def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
     def note_token(r: ReportFacts) -> str:
         return "<blank>" if r.note_len < C.NOTE_SHORT_CHARS else note_groups.find(r.id)
 
+    def coordinated(window: Sequence[ReportFacts]) -> str | None:
+        """Which tell (if any) marks this burst as one actor. Needs no proof of harm plus one tell."""
+        evidence = sum(r.has_screenshot or r.amount_lost_inr > 0 for r in window) / len(window)
+        if evidence >= C.COORD_MAX_EVIDENCE_SHARE:
+            return None
+        lags = [(r.reported_at - r.occurred_at).total_seconds() for r in window]
+        # A dataset where every lag is exactly 0 carries no timing information; never use it.
+        if any(lags):
+            quick = sum(lag < C.COORD_INSTANT_LAG.total_seconds() for lag in lags) / len(lags)
+            if quick >= C.COORD_INSTANT_SHARE:
+                return "instant_reporting"
+        lengths = [r.note_len for r in window if r.note_len >= C.NOTE_SHORT_CHARS]
+        if len(lengths) >= C.BURST_MIN_REPORTS and statistics.pstdev(lengths) / statistics.fmean(lengths) < (
+            C.COORD_UNIFORM_CV
+        ):
+            return "uniform_text"
+        top_type = Counter(r.scam_type for r in window).most_common(1)[0][1]
+        if top_type / len(window) < C.COORD_SCATTER_SHARE:
+            return "scattered_scam_types"
+        return None
+
     end = 0
     for start in range(len(rs)):
         end = max(end, start)
@@ -145,10 +166,11 @@ def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
         window = rs[start : end + 1]
         if len(window) >= C.BURST_MIN_REPORTS:
             diversity = len({note_token(r) for r in window}) / len(window)
-            if diversity < C.BURST_MIN_DIVERSITY:
+            tell = "lockstep_burst" if diversity < C.BURST_MIN_DIVERSITY else coordinated(window)
+            if tell:
                 for r in window[1:]:
                     if groups.union(window[0].id, r.id):
-                        edges["lockstep_burst"] += 1
+                        edges[tell] += 1
 
     group_of = {i: groups.find(i) for i in ids}
     n_groups = len(set(group_of.values()))

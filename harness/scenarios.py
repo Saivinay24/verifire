@@ -233,8 +233,7 @@ class Builder:
                     scam_type=self.rng.choice(SCAM_TYPES),
                 )
             )
-        soft = notes == "unique-short"
-        return Scenario(name, "attack", "phone", value, reports, _expect_not_known_masked, soft=soft)
+        return Scenario(name, "attack", "phone", value, reports, _expect_not_known_masked)
 
     def bombing_slow_blank(self, n: int = 40) -> Scenario:
         """Friends on their own networks, no notes, spread over a day so no burst rule fires."""
@@ -310,24 +309,53 @@ class Builder:
         ]
         return Scenario(f"bomb-verified-{value}", "attack", id_type, value, reports, _expect_verified)
 
-    def llm_uniform(self, n: int = 20) -> Scenario:
-        """Distinct people and networks, unique fluent notes of near-identical length, in 30 minutes."""
+    def llm_brigade(self, name: str, *, instant: bool, uniform: bool, n: int = 20) -> Scenario:
+        """Distinct people and networks, unique fluent notes, one scam type, all inside 30 minutes.
+
+        `instant`: each filed within a minute of the invented incident. `uniform`: note lengths
+        as even as a batch of generated text. Real victims rarely do either, and never both at scale.
+        """
         value = _phone(self.rng)
         base = self.now - timedelta(hours=self.rng.uniform(1, 24))
+        width = self.rng.randint(70, 110)
         reports = []
         for _ in range(n):
-            note = _note(self.rng)[:60].ljust(60, ".")
+            note = _note(self.rng)
+            if uniform:
+                note = (note + " " + _note(self.rng))[: width + self.rng.randint(-4, 4)]
             reports.append(
                 self.report(
                     value,
                     occurred=base + timedelta(minutes=self.rng.uniform(0, 30)),
-                    delay_min=0.5,
+                    delay_min=self.rng.uniform(0.1, 1.0) if instant else self.rng.uniform(3, 45),
                     note=note,
                 )
             )
-        return Scenario(
-            "llm-uniform-notes-burst", "attack", "phone", value, reports, _expect_not_known, soft=True
-        )
+        return Scenario(name, "attack", "phone", value, reports, _expect_not_known_masked)
+
+    def genuine_viral_wave(self, n: int = 25) -> Scenario:
+        """A real wave: many victims within 90 minutes, own words, no screenshots, reported minutes later."""
+        value = _phone(self.rng)
+        base = self.now - timedelta(hours=self.rng.uniform(2, 20))
+        reports = [
+            self.report(
+                value,
+                occurred=base + timedelta(minutes=self.rng.uniform(0, 90)),
+                delay_min=self.rng.uniform(2, 60),
+                note=_note(self.rng),
+            )
+            for _ in range(n)
+        ]
+        return Scenario("genuine-viral-wave-90min", "genuine", "phone", value, reports, _expect_known)
+
+    def genuine_zero_lag(self, n: int = 10) -> Scenario:
+        """A lazy dataset where reported_at always equals occurred_at; timing must not be held against it."""
+        value = _phone(self.rng)
+        reports = [
+            self.report(value, occurred=t, delay_min=0, note=_note(self.rng))
+            for t in self._times(n, timedelta(hours=self.rng.uniform(2, 30)))
+        ]
+        return Scenario("genuine-zero-lag-dataset", "genuine", "phone", value, reports, _expect_known)
 
 
 def _expect_known(body: dict[str, Any]) -> str | None:
@@ -409,7 +437,10 @@ def trust_suite(seed: int, now: datetime) -> list[Scenario]:
         b.sybil(),
         b.slow_drip(),
         b.spammer(),
-        b.llm_uniform(),
+        b.genuine_viral_wave(),
+        b.genuine_zero_lag(),
+        b.llm_brigade("llm-brigade-instant", instant=True, uniform=False),
+        b.llm_brigade("llm-brigade-uniform-length", instant=False, uniform=True),
     ]
     for id_type, value in VERIFIED_SAMPLES:
         suite.append(b.verified_attack(value, id_type, n=12))
