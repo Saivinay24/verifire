@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import health, routes
+from app.api import health, license, routes
 from app.config import get_settings
 from app.logging_setup import configure_logging, log_event
 
@@ -27,6 +27,9 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type"],
     )
+
+    # Inner middleware: the licence gate runs on every request (brief: not just at startup).
+    app.middleware("http")(license.licence_gate)
 
     @app.middleware("http")
     async def request_log(request: Request, call_next) -> Response:  # type: ignore[no-untyped-def]
@@ -59,6 +62,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(routes.router)
+    app.include_router(license.router)
     return app
 
 
