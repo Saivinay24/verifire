@@ -3,7 +3,7 @@
    so every corner runs parallel to the one around it. */
 
 :root {
-  --bg: #F7F3EF;
+  --bg: #F5F5F4;
   --ink: #142233;
   --ink-2: #4A5B6E;
   --ink-3: #7D8B9B;
@@ -58,9 +58,9 @@ svg:not(.leaflet-zoom-animated):not(.leaflet-attribution-flag):not(.chart):not(.
 /* Soft colour behind the glass, so the blur has something to refract. */
 .aurora { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 .aurora i { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55; }
-.aurora i:nth-child(1) { width: 70vw; height: 70vw; left: -20vw; top: -18vw; background: #FBDCC8; }
-.aurora i:nth-child(2) { width: 60vw; height: 60vw; right: -22vw; top: 22vh; background: #F6E7DA; }
-.aurora i:nth-child(3) { width: 80vw; height: 60vw; left: 5vw; bottom: -25vw; background: #FDE9DC; opacity: 0.6; }
+.aurora i:nth-child(1) { width: 70vw; height: 70vw; left: -20vw; top: -18vw; background: #FADFCD; }
+.aurora i:nth-child(2) { width: 60vw; height: 60vw; right: -22vw; top: 22vh; background: #D5E3FA; }
+.aurora i:nth-child(3) { width: 80vw; height: 60vw; left: 5vw; bottom: -25vw; background: #DCEAF6; opacity: 0.6; }
 
 .glass, .glass-strong {
   background: var(--glass);
@@ -140,9 +140,9 @@ html[lang="en"] .lang [data-lang="en"], html[lang="hi"] .lang [data-lang="hi"] {
 .send {
   width: calc(var(--h) - 2 * var(--pad)); height: calc(var(--h) - 2 * var(--pad)); border-radius: 50%;
   background: var(--accent); color: var(--accent-ink); display: grid; place-items: center;
-  transition: transform .15s var(--ease), opacity .2s;
+  transition: transform .15s var(--ease), background .2s, color .2s;
 }
-.send:disabled { opacity: 0.35; }
+.send:disabled { background: rgba(20, 34, 51, 0.12); color: var(--ink-3); }
 .send svg { stroke-width: 2.2; }
 .kind-chip {
   flex: none; font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: var(--r-pill);
@@ -232,7 +232,7 @@ html[lang="en"] .lang [data-lang="en"], html[lang="hi"] .lang [data-lang="hi"] {
 /* ---------- Full-screen flows ---------- */
 .flow {
   position: fixed; inset: 0; z-index: 20; overflow-y: auto;
-  background: rgba(247, 243, 239, 0.93);
+  background: rgba(245, 245, 244, 0.93);
   -webkit-backdrop-filter: blur(28px) saturate(160%); backdrop-filter: blur(28px) saturate(160%);
   padding: calc(env(safe-area-inset-top, 0px) + 10px) var(--gutter) calc(var(--safe-b) + 24px);
   animation: fade .25s var(--ease);
@@ -483,7 +483,7 @@ button.row:active { transform: scale(0.98); }
 
 /* ---------- Licence expired ---------- */
 .expired { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: var(--gutter);
-           background: rgba(247, 243, 239, 0.7); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+           background: rgba(245, 245, 244, 0.7); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .expired-card { max-width: 380px; padding: 28px 24px; border-radius: var(--r-sheet); text-align: center; display: grid; gap: 10px; justify-items: center; }
 .expired-icon { width: 44px; height: 44px; color: var(--ink-2); }
 .expired-card h2 { margin: 4px 0 0; font-size: 22px; letter-spacing: -0.02em; }

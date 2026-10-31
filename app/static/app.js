@@ -442,7 +442,8 @@ document.addEventListener("keydown", (e) => {
 function updateKind(input, chip) {
   const k = detectKind(input.value);
   chip.hidden = !k; if (k) chip.textContent = T[lang].kinds[k];
-  if (input === $("#checkInput")) $("#checkBtn").disabled = !k;
+  // The arrow lights up as soon as there is something to check; an invalid value gets a clear message on tap.
+  if (input === $("#checkInput")) $("#checkBtn").disabled = !input.value.trim();
   return k;
 }
 $("#checkInput").addEventListener("input", () => updateKind($("#checkInput"), $("#kindChip")));
