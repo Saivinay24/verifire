@@ -11,6 +11,7 @@ const T = {
     hello: "Check before you trust.",
     hello_sub: "Paste a number, UPI ID or link. See if people near you reported it.",
     report_cta: "Report a scam", near_cta: "Scams near me", dock_label: "Got a scam call or message?",
+    area_search: "Search by area name or pincode", area_none: (q) => `No area matches "${q}" yet. Try the pincode or a nearby area.`,
     check_label: "Number, UPI ID or link", check_placeholder: "Paste a number, UPI ID or link",
     fineprint: "Anonymous. We save only the area, never who you are.",
     call1930: "Lost money? Call 1930", report_this: "Report this",
@@ -104,6 +105,7 @@ const T = {
     hello: "भरोसा करने से पहले जांचें।",
     hello_sub: "नंबर, UPI ID या लिंक डालें। देखें कि आपके पास किसी ने इसकी रिपोर्ट की है या नहीं।",
     report_cta: "स्कैम की रिपोर्ट करें", near_cta: "मेरे पास के स्कैम", dock_label: "स्कैम कॉल या मैसेज आया?",
+    area_search: "इलाके का नाम या पिनकोड खोजें", area_none: (q) => `"${q}" से कोई इलाका नहीं मिला। पिनकोड या पास का इलाका आज़माएं।`,
     check_label: "नंबर, UPI ID या लिंक", check_placeholder: "नंबर, UPI ID या लिंक डालें",
     fineprint: "गुमनाम। हम सिर्फ इलाका रखते हैं, आपकी पहचान कभी नहीं।",
     call1930: "पैसे गए? 1930 पर कॉल करें", report_this: "इसकी रिपोर्ट करें",
@@ -343,21 +345,38 @@ function renderArea() {
   $("#mapAreaLabel").textContent = a ? `${a.locality}, ${a.city}` : t("choose_area");
 }
 function openAreaPicker() {
+  $("#areaSearch").value = ""; renderAreaList("");
+  openSheet("#areaSheet");
+}
+// One box for both: digits match the pincode, letters match the area or city name.
+function renderAreaList(q) {
   const list = $("#areaList"); list.replaceChildren();
+  const query = q.trim().toLowerCase();
+  const hits = AREAS.filter((a) => !query || (/^\d+$/.test(query) ? a.pincode.startsWith(query)
+    : `${a.locality} ${a.city}`.toLowerCase().includes(query)));
+  if (!hits.length) { emptyLine(list, t("area_none", q.trim())); return; }
   const byCity = {};
-  AREAS.forEach((a) => (byCity[a.city] ||= []).push(a));
+  hits.forEach((a) => (byCity[a.city] ||= []).push(a));
   Object.entries(byCity).forEach(([city, items]) => {
     const h = document.createElement("h3"); h.textContent = city; list.append(h);
     items.forEach((a) => {
       const b = document.createElement("button"); b.type = "button";
       b.innerHTML = `<b></b><span></span>`;
       b.querySelector("b").textContent = a.locality; b.querySelector("span").textContent = a.pincode;
-      b.addEventListener("click", () => { setArea(a.pincode); closeSheet("#areaSheet"); if (!$("#mapView").hidden) loadMap(); });
+      if (a.pincode === area) b.setAttribute("aria-current", "true");
+      b.addEventListener("click", () => pickArea(a));
       list.append(b);
     });
   });
-  openSheet("#areaSheet");
 }
+function pickArea(a) { setArea(a.pincode); closeSheet("#areaSheet"); if (!$("#mapView").hidden) loadMap(); }
+$("#areaSearch").addEventListener("input", (e) => renderAreaList(e.target.value));
+$("#areaSearch").addEventListener("keydown", (e) => {
+  // Enter picks the only match, so a full pincode plus Enter is enough.
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const first = $("#areaList button"); if ($("#areaList").querySelectorAll("button").length === 1) first.click();
+});
 function locate() {
   if (!navigator.geolocation) { toast(t("loc_fail")); return; }
   toast(t("locating"));

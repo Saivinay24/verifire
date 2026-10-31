@@ -186,6 +186,12 @@
   <section class="sheet glass-strong" id="areaSheet" role="dialog" aria-modal="true" aria-labelledby="areaTitle" hidden>
     <div class="grabber" aria-hidden="true"></div>
     <h2 id="areaTitle" data-t="choose_area">Choose area</h2>
+    <div class="field glass search-field">
+      <svg aria-hidden="true"><use href="#i-search"/></svg>
+      <label class="sr-only" for="areaSearch" data-t="area_search">Search by area name or pincode</label>
+      <input id="areaSearch" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" spellcheck="false"
+             data-tp="area_search" placeholder="Search by area name or pincode">
+    </div>
     <div class="area-list" id="areaList"></div>
   </section>
 
