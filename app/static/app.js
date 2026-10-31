@@ -50,8 +50,11 @@ const T = {
     newtype: (a, t) => `New scam near ${a}: ${t}.`,
     reports_n: (n) => `${n} ${n === 1 ? "report" : "reports"}`,
     ago_min: (n) => `${n} min ago`, ago_h: (n) => `${n} h ago`, ago_d: (n) => `${n} d ago`,
-    say_it: "Say it", listening: "Listening. Tap to stop", mic_hint: "Listening. Speak in English or Hindi. Your browser turns it into text. Don't say your name or number.",
-    mic_denied: "Allow the microphone to speak your note.", mic_fail: "Couldn't hear that. Type it instead.",
+    say_it: "Say it", listening: "Listening. Tap to stop", mic_hint: "Listening. Say one sentence in English or Hindi, then tap Say it again to add more. Don't say your name or number.",
+    mic_denied: "Microphone is blocked. Allow it for this site in your browser settings, or use your keyboard's mic key.",
+    mic_none: "No microphone found. Check your phone or computer allows the browser to use it.",
+    mic_unavailable: "Voice typing isn't available in this browser. Use the mic key on your keyboard instead.",
+    mic_silent: "Didn't catch anything. Tap Say it and speak.", mic_fail: "Couldn't hear that. Use the mic key on your keyboard instead.",
     prepare_complaint: "Prepare my complaint", c_title: "Your complaint, ready to send",
     c_sub: "Written from your report. Fill in the parts in [brackets]. It stays on your phone.",
     c_money: "Money taken? Call 1930 first. Banks can hold the money only if it is reported fast.",
@@ -140,8 +143,11 @@ const T = {
     newtype: (a, t) => `${a} के पास नया स्कैम: ${t}।`,
     reports_n: (n) => `${n} रिपोर्ट`,
     ago_min: (n) => `${n} मिनट पहले`, ago_h: (n) => `${n} घंटे पहले`, ago_d: (n) => `${n} दिन पहले`,
-    say_it: "बोलकर बताएं", listening: "सुन रहे हैं। रोकने के लिए दबाएं", mic_hint: "सुन रहे हैं। हिंदी या अंग्रेज़ी में बोलें। आपका ब्राउज़र इसे लिख देगा। अपना नाम या नंबर न बोलें।",
-    mic_denied: "बोलकर लिखने के लिए माइक्रोफ़ोन की अनुमति दें।", mic_fail: "सुनाई नहीं दिया। लिखकर बताएं।",
+    say_it: "बोलकर बताएं", listening: "सुन रहे हैं। रोकने के लिए दबाएं", mic_hint: "सुन रहे हैं। हिंदी या अंग्रेज़ी में एक वाक्य बोलें, और जोड़ने के लिए फिर से दबाएं। अपना नाम या नंबर न बोलें।",
+    mic_denied: "माइक्रोफ़ोन बंद है। ब्राउज़र सेटिंग में इस साइट के लिए अनुमति दें, या कीबोर्ड का माइक बटन इस्तेमाल करें।",
+    mic_none: "माइक्रोफ़ोन नहीं मिला। देखें कि फ़ोन या कंप्यूटर ब्राउज़र को माइक की अनुमति देता है।",
+    mic_unavailable: "इस ब्राउज़र में बोलकर लिखना नहीं चलता। कीबोर्ड का माइक बटन इस्तेमाल करें।",
+    mic_silent: "कुछ सुनाई नहीं दिया। बोलकर बताएं दबाएं और बोलें।", mic_fail: "सुनाई नहीं दिया। कीबोर्ड का माइक बटन इस्तेमाल करें।",
     prepare_complaint: "मेरी शिकायत तैयार करें", c_title: "आपकी शिकायत, भेजने के लिए तैयार",
     c_sub: "आपकी रिपोर्ट से लिखी गई है। [ब्रैकेट] वाली जगह भरें। यह आपके फ़ोन पर ही रहती है।",
     c_money: "पैसे गए? पहले 1930 पर कॉल करें। जल्दी बताने पर ही बैंक पैसे रोक सकता है।",
@@ -546,7 +552,7 @@ $("#reportForm").addEventListener("submit", async (e) => {
 // ---------------- Voice note ----------------
 // The phone's own speech recognition fills the note box; the person can read and edit it before
 // sending. We never receive audio. On Android Chrome the phone's speech service does the
-// transcribing, which is why the hint says "your phone turns it into text", not "nothing leaves".
+// transcribing (Google's service in Chrome), so we never claim "nothing leaves the phone".
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null;
 $("#micBtn").hidden = !Recognition;
@@ -565,15 +571,17 @@ $("#micBtn").addEventListener("click", () => {
   setNoteOpen(true);
   const box = $("#reportNote"), before = box.value.trim();
   rec = new Recognition();
-  rec.lang = lang === "hi" ? "hi-IN" : "en-IN"; rec.interimResults = true; rec.continuous = true;
+  // One phrase per tap. Continuous mode on Android Chrome repeats earlier words in every result,
+  // so the note filled with duplicates; tapping again adds the next phrase after the first.
+  rec.lang = lang === "hi" ? "hi-IN" : "en-IN"; rec.interimResults = true; rec.continuous = false;
   rec.onresult = (e) => {
-    let said = "";
-    for (let i = 0; i < e.results.length; i++) said += e.results[i][0].transcript;
-    box.value = ((before ? before + " " : "") + said.trim()).slice(0, 600);
+    const said = e.results[e.results.length - 1][0].transcript.trim();
+    box.value = ((before ? before + " " : "") + said).slice(0, 600);
   };
   rec.onerror = (e) => {
-    if (e.error === "not-allowed" || e.error === "service-not-allowed") toast(t("mic_denied"));
-    else if (e.error !== "aborted" && e.error !== "no-speech") toast(t("mic_fail"));
+    const msg = { "not-allowed": "mic_denied", "audio-capture": "mic_none", "service-not-allowed": "mic_unavailable",
+      network: "mic_unavailable", "language-not-supported": "mic_unavailable", "no-speech": "mic_silent" }[e.error];
+    if (e.error !== "aborted") toast(t(msg || "mic_fail"));
   };
   rec.onend = () => { rec = null; showListening(false); };
   try { rec.start(); showListening(true); } catch { rec = null; toast(t("mic_fail")); }
