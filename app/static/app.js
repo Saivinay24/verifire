@@ -1,4 +1,4 @@
-// Scam Check mobile web app. Plain ES module, no build step.
+// Scam Map mobile web app. Plain ES module, no build step.
 // Privacy: the app never sends GPS. "Near me" picks the nearest supported area on this device
 // and sends only its pincode. The reporter id is a random anonymous token kept on this device.
 
@@ -7,7 +7,7 @@ const $ = (sel) => document.querySelector(sel);
 // ---------------- Words (English / Hindi) ----------------
 const T = {
   en: {
-    brand: "Scam Check",
+    brand: "Scam Map",
     hello: "Check before you trust.",
     hello_sub: "Paste a number, UPI ID or link. See if people near you reported it.",
     report_cta: "Report a scam", near_cta: "Near me",
@@ -52,7 +52,7 @@ const T = {
     ago_min: (n) => `${n} min ago`, ago_h: (n) => `${n} h ago`, ago_d: (n) => `${n} d ago`,
   },
   hi: {
-    brand: "स्कैम चेक",
+    brand: "स्कैम मैप",
     hello: "भरोसा करने से पहले जांचें।",
     hello_sub: "नंबर, UPI ID या लिंक डालें। देखें कि आपके पास किसी ने इसकी रिपोर्ट की है या नहीं।",
     report_cta: "स्कैम की रिपोर्ट करें", near_cta: "मेरे पास",

@@ -1,6 +1,6 @@
 {
-  "name": "Scam Check",
-  "short_name": "Scam Check",
+  "name": "Scam Map",
+  "short_name": "Scam Map",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F3F6FA",
