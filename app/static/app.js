@@ -11,6 +11,7 @@ const T = {
     hello: "Check before you trust.",
     hello_sub: "Paste a number, UPI ID or link. See if people near you reported it.",
     report_cta: "Report a scam", near_cta: "Scams near me", dock_label: "Got a scam call or message?",
+    heat_title: "Scam reports, last 7 days", heat_few: "Few", heat_many: "Many",
     area_search: "Search by area name or pincode", type_search: "Search scam types", type_search_ph: "Try police, OTP, job, parcel",
     type_none: "Nothing matches. Tap \"Not sure, skip\" below and describe it in your own words.", area_none: (q) => `No area matches "${q}" yet. Try the pincode or a nearby area.`,
     check_label: "Number, UPI ID or link", check_placeholder: "Paste a number, UPI ID or link",
@@ -106,6 +107,7 @@ const T = {
     hello: "भरोसा करने से पहले जांचें।",
     hello_sub: "नंबर, UPI ID या लिंक डालें। देखें कि आपके पास किसी ने इसकी रिपोर्ट की है या नहीं।",
     report_cta: "स्कैम की रिपोर्ट करें", near_cta: "मेरे पास के स्कैम", dock_label: "स्कैम कॉल या मैसेज आया?",
+    heat_title: "स्कैम रिपोर्ट, पिछले 7 दिन", heat_few: "कम", heat_many: "ज़्यादा",
     area_search: "इलाके का नाम या पिनकोड खोजें", type_search: "स्कैम का प्रकार खोजें", type_search_ph: "जैसे पुलिस, OTP, नौकरी, पार्सल",
     type_none: "कुछ नहीं मिला। नीचे \"पता नहीं, आगे बढ़ें\" दबाएं और अपने शब्दों में बताएं।", area_none: (q) => `"${q}" से कोई इलाका नहीं मिला। पिनकोड या पास का इलाका आज़माएं।`,
     check_label: "नंबर, UPI ID या लिंक", check_placeholder: "नंबर, UPI ID या लिंक डालें",
@@ -864,27 +866,60 @@ function renderPull(city, alerts, a) {
 }
 
 const markers = {};
+let heatRenderer = null;
+// White to red, the same scale the legend shows. t in [0, 1].
+const HEAT = [[255, 255, 255], [255, 241, 201], [255, 193, 94], [240, 112, 60], [201, 48, 44]];
+function heatColor(t) {
+  const x = Math.max(0, Math.min(1, t)) * (HEAT.length - 1), i = Math.min(HEAT.length - 2, Math.floor(x)), f = x - i;
+  return HEAT[i].map((c, k) => Math.round(c + (HEAT[i + 1][k] - c) * f));
+}
 async function drawMap(city, a) {
   try {
     const L = await loadLeaflet();
     // The view was hidden a frame ago: wait for layout, or Leaflet sizes its layers at 0x0.
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     if (!map) {
-      map = L.map("map", { zoomControl: false, attributionControl: true });
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+      // Zoom stops at neighbourhood level (15): the map is about areas, never streets or houses.
+      map = L.map("map", { zoomControl: false, attributionControl: true, minZoom: 9, maxZoom: 15 });
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 15, attribution: "© OpenStreetMap" }).addTo(map);
       map.setView([a.lat, a.lng], 12);
     }
     map.invalidateSize();
     layer?.remove(); layer = L.layerGroup().addTo(map);
     Object.keys(markers).forEach((k) => delete markers[k]);
-    const color = { CRIT: "#D4423A", HIGH: "#C27C0E", MED: "#E3B341" };
     const pts = [[a.lat, a.lng]];
+    const max = Math.max(1, ...city.areas.map((c) => c.count));
+    // Each area is a soft patch measured in metres, so it covers the same ground at every zoom.
+    // A few overlapping discs around the official area centre (placed by the pincode, so they never
+    // move) give an irregular, part-of-town shape. Nothing points at one street or one person.
+    heatRenderer?.remove(); const renderer = heatRenderer = L.svg({ padding: 0.5 });
+    const grads = [];
     city.areas.forEach((c) => {
-      markers[c.pincode] = L.circleMarker([c.lat, c.lng], { radius: 10 + Math.min(18, c.count * 1.5), color: color[c.severity], weight: 1.5,
-        fillColor: color[c.severity], fillOpacity: 0.28 }).bindTooltip(`${c.locality}: ${t("reports_n", c.count)}`).addTo(layer);
+      const w = c.count / max, [r, g, b] = heatColor(0.3 + 0.7 * w), id = `hg-${c.pincode}`;
+      grads.push(`<radialGradient id="${id}"><stop offset="0" stop-color="rgb(${r},${g},${b})" stop-opacity="0.72"/>` +
+        `<stop offset="0.5" stop-color="rgb(${r},${g},${b})" stop-opacity="0.42"/><stop offset="1" stop-color="rgb(${r},${g},${b})" stop-opacity="0"/></radialGradient>`);
+      let seed = Number(c.pincode) || 1;
+      const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+      const size = 650 + 450 * w;
+      const blob = [[0, 0, size]];
+      for (let k = 0; k < 3; k++) {
+        const ang = (k / 3) * 2 * Math.PI + rnd() * 1.5, d = size * (0.35 + rnd() * 0.25);
+        blob.push([d * Math.sin(ang), d * Math.cos(ang), size * (0.55 + rnd() * 0.25)]);
+      }
+      blob.forEach(([dy, dx, rad]) => {
+        const lat = c.lat + dy / 111320, lng = c.lng + dx / (111320 * Math.cos(c.lat * Math.PI / 180));
+        L.circle([lat, lng], { renderer, radius: rad, stroke: false, fillColor: `url(#${id})`, fillOpacity: 1, interactive: false }).addTo(layer);
+      });
+      // An invisible, tappable disc on top gives the name and count.
+      markers[c.pincode] = L.circleMarker([c.lat, c.lng], { radius: 22, stroke: false, fillOpacity: 0, fillColor: "#000" })
+        .bindTooltip(`${c.locality}: ${t("reports_n", c.count)}`, { direction: "top", offset: [0, -8] }).addTo(layer);
       if (c.spike) L.marker([c.lat, c.lng], { icon: L.divIcon({ className: "", html: '<div class="spike-pin"></div>', iconSize: [18, 18] }), interactive: false }).addTo(layer);
       pts.push([c.lat, c.lng]);
     });
+    if (renderer._container) {
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      defs.innerHTML = grads.join(""); renderer._container.prepend(defs);
+    }
     L.circleMarker([a.lat, a.lng], { radius: 7, color: "#2F5BEA", weight: 3, fillColor: "#fff", fillOpacity: 1, pane: "markerPane" }).addTo(layer);
     // Keep every point above the sheet: pad the bottom by the sheet's height.
     const bottom = pull.getBoundingClientRect().height + 16;
