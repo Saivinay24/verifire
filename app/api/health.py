@@ -4,6 +4,8 @@
 the licence has expired. `/ready` is for us and the host: it also proves the database answers.
 """
 
+import os
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -25,4 +27,5 @@ def ready() -> JSONResponse:
             conn.execute(text("SELECT 1"))
     except Exception:
         return JSONResponse(status_code=503, content={"ok": False, "error": "DATABASE_UNAVAILABLE"})
-    return JSONResponse(content={"ok": True})
+    # Render sets RENDER_GIT_COMMIT; evidence files record which commit they tested.
+    return JSONResponse(content={"ok": True, "commit": os.environ.get("RENDER_GIT_COMMIT", "local")[:7]})
