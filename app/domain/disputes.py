@@ -1,6 +1,6 @@
 """Dispute policy: how long a review lasts and what ends it. Not trust-engine parameters.
 
-The trust engine's 70 constants live in constants.py and are untouched by disputes. These five
+The trust engine's 72 constants live in constants.py and are untouched by disputes. These five
 numbers only bound the brief's rule that a disputed number is never KNOWN_SCAM while under review,
 so a dispute protects a wrongly reported owner without becoming a scammer's shield.
 """

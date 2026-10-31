@@ -73,7 +73,7 @@ Open http://127.0.0.1:8000. The server starts with a valid licence (`licences/bo
 ### Checks
 
 ```bash
-uv run pytest -q          # 101 tests
+uv run pytest -q          # 108 tests
 uv run ruff check . && uv run ruff format --check . && uv run mypy app
 ```
 
@@ -127,7 +127,7 @@ The seven addresses from Appendix A have no login, as the brief asks.
 
 ## How the trust rules work
 
-We count **independent people, weighted by how much proof they gave**, not raw reports. Every number goes through 5 steps. All 70 constants live in one file, `app/domain/constants.py`, and each has a written reason.
+We count **independent people, weighted by how much proof they gave**, not raw reports. Every number goes through 5 steps. All 72 constants live in one file, `app/domain/constants.py`, and each has a written reason.
 
 1. **Group: who is really the same person?** Reports are merged into one group when any of these holds:
    - the same reporter
@@ -151,11 +151,12 @@ We count **independent people, weighted by how much proof they gave**, not raw r
 4. **Campaign factor.** Does the wave look real? Real victims trickle in over hours, from many places, with proof. Brigades arrive in minutes, from one place, with nothing. Seven bounded factors (speed, merged groups, blank notes, one area, proof, back-dating, uniform notes) multiply the score by between 0.2 and 1.1.
 
 5. **Pile-on check.** With 8 or more people, it is a pile-on if any of these holds:
-   - 75% or more left the note blank
+   - 75% or more said nothing: no note, and no screenshot or stated loss (proof without words counts only when 75% or more agree on the scam type)
    - 30% or more of the notes read like shop reviews
-   - fewer than half agree on the scam type
+   - under 10% showed any harm: a screenshot, a stated loss, or the scam method named
+   - fewer than half agree on the scam type (stages of one script, like a customs parcel call that turns into a digital arrest, count as one)
 
-   A pile-on is never "Known scam". This is how "40 friends reporting a real bakery" is stopped. If a scammer floods their own number with blank reports to trigger the check, we re-check using only the reports with real notes.
+   A pile-on is never "Known scam". This is how "40 friends reporting a real bakery" is stopped. If a scammer floods their own number with empty reports to trigger the check, we re-check using only the people who said something or showed harm.
 
 **Verdict.**
 - A number is **Known scam** when there is no pile-on, at least **3 groups**, at least **2 of them described** what happened or showed proof, and the **score is 1.7 or more**.

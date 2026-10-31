@@ -21,6 +21,7 @@ from datetime import datetime
 from enum import StrEnum
 
 from app.domain import constants as C
+from app.domain.catalog import scam_family
 from app.domain.notes import lsh_bands, similarity
 
 
@@ -110,17 +111,50 @@ def _iqr_seconds(times: Sequence[datetime]) -> float:
     return q[2] - q[0]
 
 
+# Pile-on signals a flood of empty reports can trip on a real scam (self-poisoning). Only these
+# allow the people who did say something to be judged on their own.
+_VOLUME_SIGNALS = {"mostly_blank", "no_harm_shown"}
+
+
+def _harm(r: ReportFacts) -> bool:
+    """Did this reporter show harm: a screenshot, a stated loss, or the scam method named."""
+    return r.has_screenshot or r.amount_lost_inr > 0 or r.note_lex
+
+
+def _harm_or_story(r: ReportFacts) -> bool:
+    """Showed harm, or wrote a full description (stock words like "scam number" are not one)."""
+    return _harm(r) or r.note_len >= C.NOTE_FULL_CHARS
+
+
+def _wrote(r: ReportFacts) -> bool:
+    return r.note_len >= C.NOTE_SHORT_CHARS
+
+
+def _said(r: ReportFacts) -> bool:
+    """Did this reporter tell us anything: a description, a screenshot, or a stated loss."""
+    return r.note_len >= C.NOTE_SHORT_CHARS or r.has_screenshot or r.amount_lost_inr > 0
+
+
 def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
     """Trust result for one identifier, protected against a blank flood drowning out real victims.
 
-    A scammer can flood blank reports onto their own number to trip the "mostly blank" pile-on
-    signal. So when that is the only signal, the people who wrote something are judged on their own;
-    if they establish the scam by themselves, that result stands and the blank reports are set aside.
+    A scammer can flood blank reports onto their own number to trip the "mostly blank" or "no harm
+    shown" pile-on signals. So when only those fire, the people who said something (a description,
+    a screenshot or a loss) are judged on their own; if they establish the scam by themselves, that
+    result stands and the empty reports are set aside.
     """
     full = _evaluate(reports)
-    if full.pile_on != ["mostly_blank"]:
+    if not full.pile_on or not set(full.pile_on) <= _VOLUME_SIGNALS:
         return full
-    written = [r for r in reports if r.note_len >= C.NOTE_SHORT_CHARS]
+    # If no harm was shown, only people who showed harm can lift the veto; else anyone who said something.
+    # Same rule the veto used: proof without words counts only if it counted for the whole group.
+    if "no_harm_shown" in full.pile_on:
+        keep = _harm_or_story
+    elif full.explain.get("proof_counts"):
+        keep = _said
+    else:
+        keep = _wrote
+    written = [r for r in reports if keep(r)]
     if not written:
         return full
     clean = _evaluate(written)
@@ -179,7 +213,16 @@ def _evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
 
     # Step 1c: a lockstep burst (many reports in one hour, mostly blank or copied notes) is one voice.
     def note_token(r: ReportFacts) -> str:
-        return "<blank>" if r.note_len < C.NOTE_SHORT_CHARS else note_groups.find(r.id)
+        """What this report says, for counting distinct voices in a burst.
+
+        Copy clusters share a token; a short note is its exact text (a brigade picking from a few
+        stock words collapses); a blank or short report that shows proof of harm is its own voice.
+        """
+        if r.note_len >= C.NOTE_DUP_MIN_CHARS:
+            return note_groups.find(r.id)
+        if r.has_screenshot or r.amount_lost_inr > 0:
+            return r.id
+        return f"<text:{hash(tuple(r.note_sig))}>" if r.note_len > 0 else "<blank>"
 
     def coordinated(window: Sequence[ReportFacts]) -> str | None:
         """Which tell (if any) marks this burst as one actor. Needs no proof of harm plus one tell."""
@@ -282,6 +325,18 @@ def _evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
         per_group[group_of[items[0].id]] += scaled[reporter]
     weight_sum = sum(min(C.GROUP_CAP, w) for w in per_group.values())
 
+    # How far the people agree on what the scam was (stages of one script count as one).
+    unit_types = Counter(
+        Counter(scam_family(r.scam_type) for r in it).most_common(1)[0][0] for it in units.values()
+    )
+    type_agreement = unit_types.most_common(1)[0][1] / len(units)
+    # Proof with no words (a screenshot or a loss tick) counts as saying something only when the
+    # people agree on the scam; a pile-on ticking every box at random does not.
+    proof_counts = type_agreement >= C.PROOF_MIN_TYPE_SHARE
+
+    def unit_said(items: list[ReportFacts]) -> bool:
+        return any(_wrote(r) or (proof_counts and _said(r)) for r in items)
+
     # Step 4: campaign shape. Each factor is a mild, bounded nudge; only several together bite.
     factors: dict[str, float] = {}
     if n_groups >= C.CAMPAIGN_MIN_GROUPS:
@@ -292,7 +347,7 @@ def _evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
         factors["burst"] = 1 / (1 + C.BURST_RATE_DAMPING * max(0.0, rate - C.BURST_RATE_FREE))
         collapsed = n_units >= C.COORDINATION_MIN_UNITS and n_groups / n_units < C.COORDINATION_MAX_SHARE
         factors["coordination"] = C.COORDINATION_FACTOR if fast and collapsed else 1.0
-        blank_share = sum(all(r.note_len < C.NOTE_SHORT_CHARS for r in it) for it in units.values()) / n_units
+        blank_share = sum(not unit_said(it) for it in units.values()) / n_units
         mostly_blank = n_units >= C.BLANK_MIN_UNITS and blank_share > C.BLANK_MAX_SHARE
         factors["blank_notes"] = C.BLANK_FACTOR if mostly_blank else 1.0
 
@@ -326,16 +381,19 @@ def _evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
     pile_on: list[str] = []
     if len(units) >= C.PILE_ON_MIN_UNITS:
         n_units = len(units)
-        noted = [it for it in units.values() if any(r.note_len >= C.NOTE_SHORT_CHARS for r in it)]
-        if 1 - len(noted) / n_units >= C.PILE_ON_BLANK_SHARE:
+        noted = [it for it in units.values() if any(_wrote(r) for r in it)]
+        said = sum(unit_said(it) for it in units.values())
+        if 1 - said / n_units >= C.PILE_ON_BLANK_SHARE:
             pile_on.append("mostly_blank")
         if (
             len(noted) >= C.PILE_ON_MIN_NOTES
             and sum(any(r.note_review for r in it) for it in noted) / len(noted) >= C.PILE_ON_REVIEW_SHARE
         ):
             pile_on.append("reviews_not_scams")
-        unit_types = Counter(Counter(r.scam_type for r in it).most_common(1)[0][0] for it in units.values())
-        if unit_types.most_common(1)[0][1] / n_units < C.PILE_ON_TYPE_SHARE:
+        harm = sum(any(_harm(r) for r in it) for it in units.values())
+        if harm / n_units < C.PILE_ON_MIN_HARM_SHARE:
+            pile_on.append("no_harm_shown")
+        if type_agreement < C.PILE_ON_TYPE_SHARE:
             pile_on.append("no_agreement_on_type")
 
     campaign = min(C.CAMPAIGN_CEIL, max(C.CAMPAIGN_FLOOR, math.prod(factors.values()) if factors else 1.0))
@@ -371,6 +429,8 @@ def _evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
             "campaign_factors": {k: round(v, 3) for k, v in factors.items()},
             "campaign_factor": round(campaign, 3),
             "pile_on": pile_on,
+            "type_agreement": round(type_agreement, 3),
+            "proof_counts": proof_counts,
             "score": round(score, 3),
         },
     )

@@ -19,7 +19,7 @@ NOTE_DUP_SIMILARITY = 0.7  # MinHash Jaccard of 4-grams; copy-paste with small e
 NOTE_DUP_MIN_CHARS = 15  # Short notes ("scam", "fraud call") collide by chance; never link them.
 BURST_WINDOW = timedelta(minutes=60)
 BURST_MIN_REPORTS = 8  # A burst smaller than this is too small to call coordinated.
-BURST_MIN_DIVERSITY = 0.5  # < half the notes distinct (blank counts as one) = lockstep brigade.
+BURST_MIN_DIVERSITY = 0.3  # < 30% of notes distinct (blank counts as one) = lockstep brigade.
 # Coordinated burst: a burst with no proof of harm AND a behavioural tell is one actor.
 # Each tell alone is weak; real victims essentially never show one at scale with zero evidence.
 COORD_MAX_EVIDENCE_SHARE = 0.15  # Under 15% of the burst has a screenshot or a stated loss...
@@ -74,7 +74,7 @@ COORDINATION_MAX_SHARE = 0.5  # Fast wave where most reporters collapsed into sh
 COORDINATION_FACTOR = 0.5  # ...means the leftovers are likely the same brigade.
 BLANK_MIN_UNITS = 8
 BLANK_MAX_SHARE = 0.5  # Most reporters wrote nothing: real victims describe what happened.
-BLANK_FACTOR = 0.4
+BLANK_FACTOR = 0.5  # Halves the weight; the pile-on gate, not this factor, is what blocks a blank flood.
 
 # --- Alerts --------------------------------------------------------------------------------
 # Pile-on gate. A real campaign's victims describe it and agree on what it was; a pile-on (the
@@ -85,7 +85,13 @@ SAME_CONNECTION_MIN_ACCOUNTS = 3  # Two accounts on one /24 may be neighbours on
 PILE_ON_BLANK_SHARE = 0.75  # Real victims leave ~25% blank (measured); 3x that is a pile-on writing nothing.
 PILE_ON_MIN_NOTES = 6
 PILE_ON_REVIEW_SHARE = 0.3  # Real victims almost never write a shop review; a pile-on of friends does.
+# Under 10% of 8+ people showed any harm (screenshot, stated loss, or named the method). Measured on
+# both test suites: every genuine group of 8+ had >= 21%; every fake-volume attack had 0%.
+PILE_ON_MIN_HARM_SHARE = 0.1
 PILE_ON_TYPE_SHARE = 0.5  # Victims of one identifier mostly pick the same scam type (~85%).
+# Blank reports that only tick "screenshot" or "lost money" count as speaking when >= 75% of the
+# people agree on the scam type (real victims ~85%; a box-ticking pile-on with random types ~40%).
+PROOF_MIN_TYPE_SHARE = 0.75
 ALERT_MAX_GROUP_REPORTS = 2  # A victim may report twice to add detail; a third report on one number is spam.
 ALERT_MIN_CAMPAIGN = 0.5  # Reports on identifiers damped below this never feed alerts.
 SPIKE_MIN_COUNT = 5

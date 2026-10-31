@@ -13,10 +13,10 @@ Each section below lists its constants, then the exact formula they appear in (c
 | Trust engine: step 2, weight per person | 16 | app/domain/constants.py |
 | Trust engine: step 3, caps | 3 | app/domain/constants.py |
 | Trust engine: step 4, campaign factor | 23 | app/domain/constants.py |
-| Trust engine: step 5, pile-on gate | 5 | app/domain/constants.py |
+| Trust engine: step 5, pile-on gate | 7 | app/domain/constants.py |
 | Alerts | 4 | app/domain/constants.py |
 | Rate limits | 3 | app/domain/constants.py |
-| **Total in constants.py** | **70** | |
+| **Total in constants.py** | **72** | |
 | Note fingerprint (MinHash) | 3 | app/domain/notes.py |
 | Lookup reply and cache | 3 | app/services/lookup.py |
 | Licence | 3 | app/domain/licence.py, app/services/licence.py |
@@ -28,7 +28,7 @@ Each section below lists its constants, then the exact formula they appear in (c
 
 There is also one inline literal in the trust engine: the 0.7 weight on method words in the evidence factor (step 4).
 
-Honest summary: **70 tunable numbers** in one file, plus 21 fixed engineering and PRD values elsewhere.
+Honest summary: **72 tunable numbers** in one file, plus 21 fixed engineering and PRD values elsewhere.
 
 ## How each value was chosen (the 7 sources)
 
@@ -44,7 +44,7 @@ Every value comes from one of these. We say which one for each number below.
 | **RES** | Gemini deep research | Taken from the research report (research/DR_gemini.txt, section 4.3). "RES (x), then TUNE" means Gemini suggested x and the harness made us change it. |
 | **ENG** | Engineering default | A standard systems choice such as a cache size or a pool size. |
 
-**Where the 70 came from.** The first build had 56 constants. 28 came from Gemini's research (17 at Gemini's exact value and 11 changed after harness runs; one of the 17, STYLE_MAX_CV, was later tuned from 0.18 to 0.06, so 16 are exact today), 3 from the brief, and 25 were ours. The other 14 were added while tuning, each time the harness found an attack the engine missed: 5 coordinated-burst rules, then 8 (the pile-on gate, the "2 must describe it" rule and the alert group cap), then the account-switch and account-farm rules (one pile-on constant was removed at the same time).
+**Where the 72 came from.** The first build had 56 constants. 28 came from Gemini's research (17 at Gemini's exact value and 11 changed after harness runs; one of the 17, STYLE_MAX_CV, was later tuned from 0.18 to 0.06, so 16 are exact today), 3 from the brief, and 25 were ours. The other 14 were added while tuning, each time the harness found an attack the engine missed: 5 coordinated-burst rules, then 8 (the pile-on gate, the "2 must describe it" rule and the alert group cap), then the account-switch and account-farm rules (one pile-on constant was removed at the same time). The last 2 (PILE_ON_MIN_HARM_SHARE, PROOF_MIN_TYPE_SHARE) came from a blind evaluation written without access to our harness; see below.
 
 We did not have a real labelled dataset of Indian scam reports, because none is public. So **TUNE** and **MEAS** values are tuned against our simulator, not against the real world. In the eval, say that plainly. The defence is that every value was then tested on held-out seeds (9101 to 9110 and 9301 to 9305) that were never used for tuning.
 
@@ -72,7 +72,7 @@ unmask      = verified OR (established at UNMASK_MIN_SCORE)
 | NOTE_DUP_MIN_CHARS | 15 | TUNE | Short notes like "fraud call" collide by chance, so they are never linked. |
 | BURST_WINDOW | 60 min | TUNE | The window used to look for a brigade. |
 | BURST_MIN_REPORTS | 8 | TUNE | Below 8 there is too little to call it coordinated. Also matches the pile-on minimum. |
-| BURST_MIN_DIVERSITY | 0.5 | TUNE | If fewer than half the notes in the burst are distinct, it is a lockstep brigade. |
+| BURST_MIN_DIVERSITY | 0.3 | TUNE | If under 30% of the notes in the burst are distinct, it is a lockstep brigade. Lowered from 0.5 after the blind evaluation: real waves whose notes come from a small template pool sat at about 0.46. A blank or short report with proof of harm is its own voice; a short note counts by its exact text. |
 | COORD_MAX_EVIDENCE_SHARE | 0.15 | TUNE | A coordinated burst has almost no screenshots or losses (under 15%). |
 | COORD_INSTANT_LAG | 2 min | TUNE | A victim of a 3-hour call does not report 30 seconds after it started. |
 | COORD_INSTANT_SHARE | 0.8 | TUNE | 80% of the burst reported "instantly". |
@@ -174,7 +174,7 @@ weight_sum = Σ over groups of min(GROUP_CAP, group total)
 | COORDINATION_FACTOR | 0.5 | TUNE | ...means the rest are likely the same brigade. |
 | BLANK_MIN_UNITS | 8 | TUNE | |
 | BLANK_MAX_SHARE | 0.5 | SIM + TUNE | Real victims leave about 25% of notes blank (simulator assumption). More than half blank is suspicious. |
-| BLANK_FACTOR | 0.4 | TUNE | |
+| BLANK_FACTOR | 0.5 | TUNE | Raised from 0.4 after the blind evaluation. The pile-on gate, not this factor, is what blocks a blank flood. |
 
 
 **Formula: Step 4, campaign factor (only if groups >= CAMPAIGN_MIN_GROUPS)**
@@ -191,7 +191,7 @@ campaign     = clip(product of factors, CAMPAIGN_FLOOR, CAMPAIGN_CEIL)
 score        = weight_sum * campaign
 ```
 
-## Step 5: pile-on gate (5)
+## Step 5: pile-on gate (7)
 
 | Constant | Value | Source | Why |
 |---|---|---|---|
@@ -199,15 +199,20 @@ score        = weight_sum * campaign
 | PILE_ON_BLANK_SHARE | 0.75 | SIM | Real victims leave about 25% blank, so 3 times that is a pile-on. We raised it from 0.6 after the holdout. |
 | PILE_ON_MIN_NOTES | 6 | TUNE | Enough written notes to judge their content. |
 | PILE_ON_REVIEW_SHARE | 0.3 | MEAS | Review words ("bad service", "rude staff") showed up in 0 of 1,548 real-victim notes. Friends attacking a shop write them often. |
-| PILE_ON_TYPE_SHARE | 0.5 | SIM | Real victims of one number agree on the scam type about 85% of the time (simulator assumption). Under 50% agreement is a pile-on. |
+| PILE_ON_TYPE_SHARE | 0.5 | SIM | Real victims of one number agree on the scam type about 85% of the time (simulator assumption). Under 50% agreement is a pile-on. Stages of one script count as one type: courier-customs with digital-arrest, job-offer with investment-group. |
+| PILE_ON_MIN_HARM_SHARE | 0.1 | MEAS | Under 10% of the people showed any harm (screenshot, stated loss, or the method named). Measured on both suites: every genuine group of 8+ had 21% or more; every fake-volume attack had 0%. |
+| PROOF_MIN_TYPE_SHARE | 0.75 | MEAS | A blank report that only ticks screenshot or loss counts as "said something" when 75% or more agree on the type. Blind-eval real victims agree 100%; our "30 blank reports all claiming proof" attack about 40%. |
 
 
 **Formula: Step 5, pile-on gate (only if people >= PILE_ON_MIN_UNITS)**
 ```
-mostly_blank         blank share >= PILE_ON_BLANK_SHARE
+mostly_blank         share who said nothing >= PILE_ON_BLANK_SHARE
+                     (said = note >= NOTE_SHORT_CHARS, or screenshot/loss if type agreement >= PROOF_MIN_TYPE_SHARE)
 reviews_not_scams    written notes >= PILE_ON_MIN_NOTES AND review share >= PILE_ON_REVIEW_SHARE
-no_agreement_on_type top scam type share < PILE_ON_TYPE_SHARE
-rescue: if only mostly_blank fired, re-run on reports with notes >= NOTE_SHORT_CHARS
+no_harm_shown        share with screenshot, loss or method words < PILE_ON_MIN_HARM_SHARE
+no_agreement_on_type top scam family share < PILE_ON_TYPE_SHARE
+rescue: if only mostly_blank / no_harm_shown fired, re-run on the people who said something
+        (for no_harm_shown: showed harm or wrote >= NOTE_FULL_CHARS)
 ```
 
 ## Alerts (4)
@@ -302,10 +307,10 @@ The engine takes every report about one number and decides whether real, indepen
 | 2. Weigh | How much is each person worth? | 16 |
 | 3. Cap | One connection or one group cannot count as many | 3 |
 | 4. Crowd check | Does the wave look like real victims? | 23 |
-| 5. Pile-on gate | Do these people sound like victims at all? | 5 |
+| 5. Pile-on gate | Do these people sound like victims at all? | 7 |
 | Verdict | KNOWN SCAM or not, and whether to unmask | 4 |
 | Alerts | Which reports may trigger area alerts | 4 |
-| **Total** | | **70** |
+| **Total** | | **72** |
 
 
 ### Step 0: Rate limits (3), before anything is stored
@@ -320,7 +325,7 @@ The engine takes every report about one number and decides whether real, indepen
 - **Copied note:** `NOTE_DUP_SIMILARITY` = 0.7, `NOTE_DUP_MIN_CHARS` = 15. Notes 70% or more the same, both at least 15 characters, are one person. Catches 40 friends pasting one story; short notes like "fraud call" never link by chance.
 - **Account switch:** `SAME_CONNECTION_PAIR_WINDOW` = 15 min. A new account on the same connection within 15 minutes is the same person. Catches 10 friends with 2 accounts each.
 - **Account farm:** `SAME_CONNECTION_MIN_ACCOUNTS` = 3. Three or more accounts on one connection are one person. Catches 22 accounts on one Wi-Fi. Not 2, because 2 can be strangers on one mobile carrier.
-- **Lockstep burst:** `BURST_WINDOW` = 60 min, `BURST_MIN_REPORTS` = 8, `BURST_MIN_DIVERSITY` = 0.5. Eight or more reports in an hour where fewer than half the notes differ are one brigade.
+- **Lockstep burst:** `BURST_WINDOW` = 60 min, `BURST_MIN_REPORTS` = 8, `BURST_MIN_DIVERSITY` = 0.3. Eight or more reports in an hour where under 30% of the notes differ are one brigade. A report with a screenshot or a loss is always its own voice.
 - **Coordinated burst (5):** a burst where under 15% have proof (`COORD_MAX_EVIDENCE_SHARE`), plus one tell: 80% or more filed within 2 minutes of the claimed incident (`COORD_INSTANT_SHARE`, `COORD_INSTANT_LAG`), note lengths almost identical (`COORD_UNIFORM_CV` = 0.05), or no scam type covering half the burst (`COORD_SCATTER_SHARE` = 0.5). Catches bots and AI-written brigades.
 - **Why it helps:** fakes that look separate are merged: 22 to 1, 40 to 1, 20 to 1.
 
@@ -357,13 +362,14 @@ The engine takes every report about one number and decides whether real, indepen
 
 - **Why it helps:** real victims trickle in over hours, from many places, with proof; brigades do not. The 0.2 to 1.1 bounds mean no single check decides the verdict.
 
-### Step 5: Pile-on gate (5)
+### Step 5: Pile-on gate (7)
 
 - Judged only with 8 or more people (`PILE_ON_MIN_UNITS`). **In:** the groups and their notes. **Out:** pile-on yes or no. Yes means never KNOWN SCAM.
-- `PILE_ON_BLANK_SHARE` = 0.75: 75% or more blank notes (real victims leave about 25% blank).
+- `PILE_ON_BLANK_SHARE` = 0.75: 75% or more said nothing (real victims leave about 25% blank). A screenshot or a stated loss counts as saying something when 75% or more agree on the type (`PROOF_MIN_TYPE_SHARE`).
+- `PILE_ON_MIN_HARM_SHARE` = 0.1: under 10% showed any harm (screenshot, loss or method words). Catches 40 accounts that drip short words like "scam number" over a week.
 - `PILE_ON_MIN_NOTES` = 6 and `PILE_ON_REVIEW_SHARE` = 0.3: of 6 or more written notes, 30% or more read like shop reviews.
-- `PILE_ON_TYPE_SHARE` = 0.5: the top scam type is under half (real victims agree about 85% of the time).
-- If blanks are the only problem, the engine rechecks only the real notes, so a scammer cannot bury their own number under blank reports.
+- `PILE_ON_TYPE_SHARE` = 0.5: the top scam type is under half (real victims agree about 85% of the time). Courier-customs and digital-arrest count as one script, as do job-offer and investment-group.
+- If empty reports are the only problem, the engine rechecks only the people who said something or showed harm, so a scammer cannot bury their own number under empty reports.
 - **Why it helps:** catches the brief's "40 friends report a real bakery", which can survive on volume alone.
 
 ### Verdict (4)
@@ -380,3 +386,16 @@ The engine takes every report about one number and decides whether real, indepen
 - `ALERT_MAX_GROUP_REPORTS` = 2: a person may report twice to add detail; a third does not count.
 - `SPIKE_MIN_COUNT` = 5, `SPIKE_RATIO` = 2.0: 5 or more trusted reports in 24 hours and at least 2x the daily average. Both from the brief.
 - **Why it helps:** fake reports cannot raise a spike in your area, because they are filtered before counting.
+
+
+## Blind evaluation (1 Nov 2026)
+
+An agent with no access to our harness wrote its own judge-style test suite from the PRD (`eval_blind/`). On the old engine, 65 of its standard cases failed over 10 seeds: real victims who left the note blank but attached a screenshot or a loss, real waves whose notes came from a small template pool, victims who picked related scam types, and a slow-drip bakery brigade. Each failure was traced to the exact rule with the engine's own explain output, fixed, and measured on both suites plus seeds neither had used:
+
+| Suite | Before | After |
+|---|---|---|
+| Blind eval t1, 30 fresh seeds, standard cases | 181 failures | 4 (all one marginal shape: 8 blank, no screenshot) |
+| Our harness, 40 fresh seeds | 4 failures | same 4 (3-4 victim edge cases) |
+| Our scenario catalog (HTTP, 20 seeds each) | baseline | identical row for row |
+
+Still not caught, by design: 40 or 15 accounts that each invent a different believable story with proof (no text-only system can tell them from victims), and 12 victims who all report within 2 minutes with no proof (that is the bot-farm signature).

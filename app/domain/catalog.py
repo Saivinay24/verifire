@@ -22,6 +22,21 @@ SCAM_TYPES: tuple[str, ...] = (
 )
 OTHER_SCAM_TYPE = "other"
 
+# Scam types that are stages of one script, so victims of one number may pick either label.
+# A parcel "held at customs" call is the opening of a digital arrest; a paid "task" job is the
+# hook of an investment group. Every other type is its own family.
+SCAM_FAMILY: dict[str, str] = {
+    "courier-customs": "digital-arrest",
+    "digital-arrest": "digital-arrest",
+    "job-offer": "investment-group",
+    "investment-group": "investment-group",
+}
+
+
+def scam_family(scam_type: str) -> str:
+    return SCAM_FAMILY.get(scam_type, scam_type)
+
+
 CHANNELS: tuple[str, ...] = (
     "Phone call",
     "SMS or WhatsApp",

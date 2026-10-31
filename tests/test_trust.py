@@ -1,5 +1,6 @@
 """Trust rules as pure functions: the verdict boundaries the README explains to judges."""
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 from app.domain import trust
@@ -75,9 +76,87 @@ def test_friends_writing_shop_reviews_never_confirm() -> None:
 
 
 def test_mostly_blank_pile_on_never_confirms() -> None:
-    reports = [facts(i, "" if i % 5 else "fraud number, beware everyone", lost=1000) for i in range(40)]
+    reports = [facts(i, "" if i % 5 else "fraud number, beware everyone") for i in range(40)]
     assert "mostly_blank" in trust.evaluate(reports).pile_on
     assert verdict(reports) is trust.Verdict.SUSPICIOUS
+
+
+def test_blank_victims_who_show_proof_are_not_a_blank_pile_on() -> None:
+    # Blind eval G05: 8 victims, no words, every one attached a screenshot. Proof is saying something.
+    reports = [facts(i, "", screenshot=True, lost=[0, 2000][i % 2]) for i in range(8)]
+    result = trust.evaluate(reports)
+    assert "mostly_blank" not in result.pile_on
+    assert verdict(reports) is trust.Verdict.KNOWN_SCAM
+
+
+def test_victims_may_pick_two_stages_of_one_script() -> None:
+    # Blind eval G10: a customs-parcel call is the opening of a digital arrest; votes split 3 ways.
+    types = ["digital-arrest", "courier-customs", "otp-call"]
+    stories = [
+        "FedEx parcel with drugs in my name, then a fake CBI officer on video call",
+        "customs officer said my courier is seized and asked a fine by UPI",
+        "otp call saying it was needed to release the parcel",
+        "they kept me on skype for hours saying I am under digital arrest",
+        "courier company call, then transferred to police, threatened arrest warrant",
+        "asked me to read the otp to cancel the courier booking",
+        "fake police station background, said aadhaar linked to money laundering",
+        "parcel from Taiwan stopped at customs, pay processing fee or FIR",
+    ]
+    reports = [facts(i, stories[i], scam_type=types[i % 3]) for i in range(8)]
+    assert "no_agreement_on_type" not in trust.evaluate(reports).pile_on
+    assert verdict(reports) is trust.Verdict.KNOWN_SCAM
+
+
+def _in_one_hour(n: int, note: str, **kw: object) -> trust.ReportFacts:
+    r = facts(n, note, **kw)  # type: ignore[arg-type]
+    t = datetime(2026, 10, 31, 12, tzinfo=UTC) + timedelta(minutes=n * 4)
+    return replace(r, occurred_at=t, reported_at=t + timedelta(minutes=5))
+
+
+def test_burst_of_stock_words_is_one_voice() -> None:
+    # Blind eval A1_bomb10: 10 friends in one hour picking from four stock words, no proof.
+    two = [_in_one_hour(i, ["scam", "fraud"][i % 2]) for i in range(10)]  # 2 distinct of 10: lockstep
+    assert trust.evaluate(two).explain["merged_by"].get("lockstep_burst")
+    assert verdict(two) is not trust.Verdict.KNOWN_SCAM
+    words = ["scam", "fraud", "scam number", "cheater"]
+    four = [_in_one_hour(i, words[i % 4]) for i in range(10)]  # 4 of 10: not lockstep, but no harm shown
+    assert "no_harm_shown" in trust.evaluate(four).pile_on
+    assert verdict(four) is not trust.Verdict.KNOWN_SCAM
+
+
+def test_viral_wave_of_quiet_victims_with_losses_is_not_lockstep() -> None:
+    # Blind eval G07: 12 victims in one hour, two thirds blank, but half of them lost money.
+    reports = [
+        _in_one_hour(i, "" if i % 3 else "otp scam", lost=[0, 15000][i % 2], screenshot=i == 4)
+        for i in range(12)
+    ]
+    assert not trust.evaluate(reports).explain["merged_by"].get("lockstep_burst")
+    assert verdict(reports) is trust.Verdict.KNOWN_SCAM
+
+
+def test_many_people_no_harm_shown_never_confirms() -> None:
+    # Blind eval A1_bomb40_slowdrip: 40 accounts over days, short varied words, nobody shows harm.
+    words = ["scam number", "they cheated", "do not call this", "cheaters", "beware scam", "fraud"]
+    reports = [facts(i, words[i % len(words)] + "!" * (i % 3)) for i in range(40)]
+    result = trust.evaluate(reports)
+    assert "no_harm_shown" in result.pile_on
+    assert verdict(reports) is trust.Verdict.SUSPICIOUS
+    assert not result.alert_ids
+
+
+def test_no_harm_flood_cannot_bury_real_victims() -> None:
+    # Self-poisoning with words: 4 real victims, then 50 "scam number" reports (harm share 7%).
+    stories = [
+        "pretended to be SBI, asked for the OTP, money gone",
+        "said my KYC expired and sent a link, I lost 5000",
+        "bank helpline caller wanted my card number and cvv",
+        "told me to install anydesk to stop a refund, account emptied",
+    ]
+    victims = [facts(i, stories[i], lost=5000, screenshot=True) for i in range(4)]
+    flood = [facts(10 + i, "scam number") for i in range(50)]
+    assert "no_harm_shown" in trust._evaluate(victims + flood).pile_on
+    assert verdict(victims) is trust.Verdict.KNOWN_SCAM
+    assert verdict(victims + flood) is trust.Verdict.KNOWN_SCAM
 
 
 def test_reporters_who_cannot_agree_on_the_scam_never_confirm() -> None:
@@ -119,3 +198,12 @@ def test_blank_flood_cannot_demote_an_established_scam() -> None:
     assert verdict(victims + flood) is trust.Verdict.KNOWN_SCAM
     # ...but a flood of blanks alone never confirms anything.
     assert verdict(flood) is trust.Verdict.SUSPICIOUS
+
+
+def test_box_ticking_pile_on_with_no_words_never_confirms() -> None:
+    # Catalog "30 blank reports all claiming proof": no words, every box ticked, types half agree.
+    types = ["otp-call"] * 15 + ["other"] * 8 + ["lottery-prize"] * 7
+    reports = [facts(i, "", scam_type=types[i], screenshot=True, lost=5000) for i in range(30)]
+    result = trust.evaluate(reports)
+    assert "mostly_blank" in result.pile_on and not result.explain["proof_counts"]
+    assert verdict(reports) is trust.Verdict.SUSPICIOUS
