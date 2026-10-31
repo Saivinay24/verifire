@@ -306,6 +306,9 @@
       <button class="pill glass-strong" id="mapArea" type="button">
         <svg aria-hidden="true"><use href="#i-pin"/></svg><span id="mapAreaLabel"></span>
       </button>
+      <button class="pill glass-strong map-near" id="mapNear" type="button">
+        <svg aria-hidden="true"><use href="#i-locate"/></svg><span data-t="near_me">Near me</span>
+      </button>
     </header>
     <div class="heat-legend glass-strong" aria-hidden="true">
       <span class="heat-title" data-t="heat_title">Scam reports, last 7 days</span>
@@ -322,6 +325,11 @@
       </div>
       <div class="pull-body" id="pullBody">
         <div id="alertList" class="alert-list"></div>
+        <h3 class="pull-h" id="hereTypesHead"></h3>
+        <div id="hereTypes" class="bars"></div>
+        <div id="hereKnownWrap"><h3 class="pull-h" data-t="known_area">Numbers reported here</h3><div id="hereKnown" class="list"></div></div>
+        <div id="hereFeedWrap"><h3 class="pull-h" data-t="recent_area">Recent reports here</h3><div id="hereFeed" class="list"></div></div>
+        <h2 class="pull-city" id="cityHead"></h2>
         <h3 class="pull-h" data-t="trending">Trending scams</h3>
         <div id="typeBars" class="bars"></div>
         <h3 class="pull-h" data-t="known_here">Numbers reported as scams</h3>

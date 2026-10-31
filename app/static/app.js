@@ -119,6 +119,9 @@ const T = {
     mine_how: "Type your number, UPI ID or link. You'll see exactly what anyone else sees. If people reported it by mistake, you can ask for a review from there.",
     mine_placeholder: "Your number, UPI ID or link",
     pull_title: (c) => `${c}, last 7 days`,
+    here_sub: (n, city, total) => `${n ? `${n} ${n === 1 ? "report" : "reports"} counted here` : "Nothing counted here this week"}. ${total} across ${city}.`,
+    here_types: (a) => `Scams in ${a}`, across: (c) => `Across ${c}`, known_area: "Numbers reported here", recent_area: "Recent reports here",
+    here_none: "No counted reports here this week.", near_me: "Near me", f_also: "Also reported as",
     pull_sub: (counted, aside) => aside ? `${counted} reports counted. ${aside} repeats and fake reports set aside.` : `${counted} reports counted.`,
     pull_empty: (c) => `No reports counted in ${c} in the last 7 days.`,
     trending: "Trending scams", known_here: "Numbers reported as scams", by_area: "By area", recent: "Recent reports",
@@ -251,6 +254,9 @@ const T = {
     mine_how: "अपना नंबर, UPI ID या लिंक लिखें। आपको वही दिखेगा जो बाकी सबको दिखता है। अगर गलती से रिपोर्ट हुई है, तो वहीं से जांच के लिए कह सकते हैं।",
     mine_placeholder: "आपका नंबर, UPI ID या लिंक",
     pull_title: (c) => `${c}, पिछले 7 दिन`,
+    here_sub: (n, city, total) => `${n ? `यहाँ ${n} रिपोर्ट गिनी गईं` : "इस हफ़्ते यहाँ कुछ नहीं गिना गया"}। पूरे ${city} में ${total}।`,
+    here_types: (a) => `${a} में स्कैम`, across: (c) => `पूरे ${c} में`, known_area: "यहाँ रिपोर्ट किए गए नंबर", recent_area: "यहाँ की हाल की रिपोर्ट",
+    here_none: "इस हफ़्ते यहाँ कोई गिनी गई रिपोर्ट नहीं।", near_me: "मेरे पास", f_also: "इसके रूप में भी रिपोर्ट",
     pull_sub: (counted, aside) => aside ? `${counted} रिपोर्ट गिनी गईं। ${aside} दोहराई या नकली रिपोर्ट अलग रखी गईं।` : `${counted} रिपोर्ट गिनी गईं।`,
     pull_empty: (c) => `पिछले 7 दिनों में ${c} में कोई रिपोर्ट नहीं गिनी गई।`,
     trending: "अभी चल रहे स्कैम", known_here: "स्कैम के रूप में रिपोर्ट किए गए नंबर", by_area: "इलाके के हिसाब से", recent: "हाल की रिपोर्ट",
@@ -469,12 +475,13 @@ function locate() {
     const { latitude: la, longitude: lo } = pos.coords;
     let best = null, bestD = Infinity;
     AREAS.forEach((a) => { const d = (a.lat - la) ** 2 + ((a.lng - lo) * Math.cos(la * Math.PI / 180)) ** 2; if (d < bestD) { bestD = d; best = a; } });
-    if (best) { setArea(best.pincode); toast(`${best.locality}, ${best.city}`); }
+    if (best) { setArea(best.pincode); toast(`${best.locality}, ${best.city}`); if (!$("#mapView").hidden) loadMap(); }
   }, () => toast(t("loc_fail")), { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 });
 }
 $("#areaBtn").addEventListener("click", openAreaPicker);
 $("#locateBtn").addEventListener("click", locate);
 $("#mapArea").addEventListener("click", openAreaPicker);
+$("#mapNear").addEventListener("click", locate);
 
 // ---------------- Sheets ----------------
 function openSheet(sel) { $("#scrim").hidden = false; $(sel).hidden = false; $(sel).querySelector("button, input, a")?.focus({ preventScroll: true }); }
@@ -573,6 +580,9 @@ function showResult(r) {
     add(t("f_people"), r.distinct_reporters);
     add(t("f_last"), ago(r.last_seen));
     add(t("f_type"), typeInfo(r.scam_type)[lang]);
+    // Other types people reported, one vote per independent person, so the full picture is visible.
+    const others = (r.scam_types || []).slice(1).map((x) => `${typeInfo(x.scam_type)[lang]} (${x.people})`);
+    if (others.length) add(t("f_also"), others.join(", "), true);
   }
   $("#advice").textContent = v === "VERIFIED_BUSINESS" ? t("verified_advice")
     : r.report_count > 0 ? typeInfo(r.scam_type).advice[lang] : "";
@@ -1025,8 +1035,20 @@ async function loadMap() {
 }
 
 function renderPull(city, alerts, a) {
-  $("#pullTitle").textContent = t("pull_title", city.city);
-  $("#pullSub").textContent = city.counted ? t("pull_sub", city.counted, city.reports - city.counted) : t("pull_empty", city.city);
+  // The chosen area first, then the whole city under it.
+  const here = city.here;
+  $("#pullTitle").textContent = t("pull_title", a.locality);
+  $("#pullSub").textContent = t("here_sub", here.counted, city.city, city.counted);
+  $("#hereTypesHead").textContent = t("here_types", a.locality);
+  if (here.scam_types.length) renderBars($("#hereTypes"), here.scam_types, (x) => typeInfo(x.scam_type)[lang], 4);
+  else { $("#hereTypes").replaceChildren(); emptyLine($("#hereTypes"), t("here_none")); }
+  const hk = $("#hereKnown"); hk.replaceChildren(); $("#hereKnownWrap").hidden = !here.known_scams.length;
+  here.known_scams.slice(0, 5).forEach((k) => hk.append(knownRow(k)));
+  const hf = $("#hereFeed"); hf.replaceChildren(); $("#hereFeedWrap").hidden = !here.recent.length;
+  here.recent.slice(0, 5).forEach((f) => hf.append(feedRow(f)));
+  $("#cityHead").textContent = t("across", city.city);
+  $("#cityHead").insertAdjacentHTML("beforeend", `<small></small>`);
+  $("#cityHead small").textContent = city.counted ? t("pull_sub", city.counted, city.reports - city.counted) : t("pull_empty", city.city);
 
   const al = $("#alertList"); al.replaceChildren();
   const spikes = city.areas.filter((x) => x.spike && x.pincode !== a.pincode);
@@ -1039,13 +1061,7 @@ function renderPull(city, alerts, a) {
 
   const kl = $("#knownList"); kl.replaceChildren();
   if (!city.known_scams.length) emptyLine(kl, t("none_known"));
-  city.known_scams.forEach((k) => {
-    const r = row("button", `<span class="dot sev-CRIT"></span><span class="grow"><strong></strong><small></small></span><svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>`);
-    r.querySelector("strong").textContent = fmtValue(k.identifier_type, k.display_value);
-    r.querySelector("small").textContent = `${typeInfo(k.scam_type)[lang]} · ${t("people_n", k.people)} · ${k.localities.join(", ")}`;
-    r.addEventListener("click", () => lookupValue(k.identifier_type, k.display_value));
-    kl.append(r);
-  });
+  city.known_scams.forEach((k) => kl.append(knownRow(k)));
 
   const ar = $("#areaRows"); ar.replaceChildren();
   if (!city.areas.length) emptyLine(ar, t("no_clusters"));
@@ -1060,18 +1076,26 @@ function renderPull(city, alerts, a) {
 
   const fd = $("#feed"); fd.replaceChildren();
   if (!city.recent.length) emptyLine(fd, t("no_data"));
-  city.recent.forEach((f) => {
-    const open = f.verdict === "KNOWN_SCAM";
-    const ch = CHANNELS.find((c) => c.id === f.channel) || CHANNELS[CHANNELS.length - 1];
-    const r = row(open ? "button" : "div", `<span class="ch-icon"><svg aria-hidden="true"><use href="#${ch.icon}"/></svg></span><span class="grow"><strong></strong><small></small></span>`);
-    r.querySelector("strong").textContent = typeInfo(f.scam_type)[lang];
-    r.querySelector("small").textContent = `${fmtValue(f.identifier_type, f.display_value)} · ${f.locality} · ${ago(f.occurred_at)}`;
-    if (open) {
-      r.insertAdjacentHTML("beforeend", `<svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>`);
-      r.addEventListener("click", () => lookupValue(f.identifier_type, f.display_value));
-    }
-    fd.append(r);
-  });
+  city.recent.forEach((f) => fd.append(feedRow(f)));
+}
+function knownRow(k) {
+  const r = row("button", `<span class="dot sev-CRIT"></span><span class="grow"><strong></strong><small></small></span><svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>`);
+  r.querySelector("strong").textContent = fmtValue(k.identifier_type, k.display_value);
+  r.querySelector("small").textContent = `${typeInfo(k.scam_type)[lang]} · ${t("people_n", k.people)} · ${k.localities.join(", ")}`;
+  r.addEventListener("click", () => lookupValue(k.identifier_type, k.display_value));
+  return r;
+}
+function feedRow(f) {
+  const open = f.verdict === "KNOWN_SCAM";
+  const ch = CHANNELS.find((c) => c.id === f.channel) || CHANNELS[CHANNELS.length - 1];
+  const r = row(open ? "button" : "div", `<span class="ch-icon"><svg aria-hidden="true"><use href="#${ch.icon}"/></svg></span><span class="grow"><strong></strong><small></small></span>`);
+  r.querySelector("strong").textContent = typeInfo(f.scam_type)[lang];
+  r.querySelector("small").textContent = `${fmtValue(f.identifier_type, f.display_value)} · ${f.locality} · ${ago(f.occurred_at)}`;
+  if (open) {
+    r.insertAdjacentHTML("beforeend", `<svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>`);
+    r.addEventListener("click", () => lookupValue(f.identifier_type, f.display_value));
+  }
+  return r;
 }
 
 const markers = {};

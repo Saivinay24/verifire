@@ -109,9 +109,10 @@ def city_pulse(pincode: str, days: float, now: datetime) -> dict[str, Any]:
             },
         )
         item["localities"].add(AREAS_BY_PINCODE[r["pincode"]].locality)
-    known_list = sorted(known.values(), key=lambda k: -k["people"])[:KNOWN_LIMIT]
-    for k in known_list:
+    known_all = sorted(known.values(), key=lambda k: -k["people"])
+    for k in known_all:
         k["localities"] = sorted(k["localities"])
+    known_list = known_all[:KNOWN_LIMIT]
 
     recent = [
         {
@@ -126,7 +127,23 @@ def city_pulse(pincode: str, days: float, now: datetime) -> dict[str, Any]:
         }
         for r in counted
         if not r["verified"]
-    ][:FEED_LIMIT]
+    ]
+
+    # The chosen area on its own, so a person sees their neighbourhood before the whole city.
+    here_counted = [r for r in counted if r["pincode"] == centre.pincode]
+    here_area = next((x for x in areas if x["pincode"] == centre.pincode), None)
+    here = {
+        "pincode": centre.pincode,
+        "locality": centre.locality,
+        "reports": sum(r["pincode"] == centre.pincode for r in window),
+        "counted": len(here_counted),
+        "people": here_area["count"] if here_area else 0,
+        "spike": bool(here_area and here_area["spike"]),
+        "scam_types": _ranked(Counter(r["scam_type"] for r in here_counted), "scam_type"),
+        "known_scams": [k for k in known_all if centre.locality in k["localities"]][:KNOWN_LIMIT],
+        "recent": [x for x in recent if x["pincode"] == centre.pincode][:FEED_LIMIT],
+    }
+    recent = recent[:FEED_LIMIT]
 
     return {
         "city": centre.city,
@@ -138,6 +155,7 @@ def city_pulse(pincode: str, days: float, now: datetime) -> dict[str, Any]:
         "scam_types": _ranked(Counter(r["scam_type"] for r in counted), "scam_type"),
         "known_scams": known_list,
         "recent": recent,
+        "here": here,
     }
 
 

@@ -196,6 +196,27 @@ def _facts(
     ]
 
 
+def scam_types(rows: Sequence[RowMapping], group_of: dict[str, str]) -> list[dict[str, Any]]:
+    """What people say this number does: one vote per independent group the trust engine found.
+
+    A group is one person, or several accounts the engine tied together (one connection, copied
+    text, a lockstep burst). Each group votes once, with the type it reported most, so a brigade
+    of fake accounts cannot relabel a real scam. Ties go to the type reported most recently.
+    """
+    by_group: dict[str, list[RowMapping]] = {}
+    for r in rows:
+        by_group.setdefault(group_of.get(str(r["id"]), str(r["id"])), []).append(r)
+    count: Counter[str] = Counter()
+    latest: dict[str, Any] = {}
+    for items in by_group.values():
+        vote = Counter(r["scam_type"] for r in items).most_common(1)[0][0]
+        count[vote] += 1
+    for r in sorted(rows, key=lambda r: r["occurred_at"]):
+        latest[r["scam_type"]] = r["occurred_at"]
+    ranked = sorted(count, key=lambda st: (-count[st], -latest[st].timestamp()))
+    return [{"scam_type": st, "people": count[st]} for st in ranked]
+
+
 def overruled(dispute: RowMapping, rows: Sequence[RowMapping], facts: Sequence[trust.ReportFacts]) -> bool:
     """New victims overrule a dispute: people and networks not seen before it, reporting after it,
     who on their own clear the full KNOWN_SCAM bar, spread over DISPUTE_OVERRULE_SPREAD.
@@ -263,7 +284,7 @@ def recompute(conn: Connection, identifier_id: int, *, verified: bool) -> trust.
             changes.append({"rid": r["id"], "g": group, "w": weight})
     store.update_report_trust(conn, changes)
 
-    types = Counter(r["scam_type"] for r in rows)
+    types = scam_types(rows, result.group_of)
     store.update_identifier(
         conn,
         identifier_id,
@@ -276,9 +297,9 @@ def recompute(conn: Connection, identifier_id: int, *, verified: bool) -> trust.
             "unmasked": trust.can_unmask(verified=verified, result=result),
             "first_seen": min((r["occurred_at"] for r in rows), default=None),
             "last_seen": max((r["occurred_at"] for r in rows), default=None),
-            "top_scam_type": types.most_common(1)[0][0] if types else None,
+            "top_scam_type": types[0]["scam_type"] if types else None,
             "challenged": challenged,
-            "explain": {**result.explain, "dispute": state} if state else result.explain,
+            "explain": {**result.explain, "types": types, **({"dispute": state} if state else {})},
         },
     )
     return verdict

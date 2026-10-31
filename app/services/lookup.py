@@ -65,6 +65,7 @@ def _answer(id_type: IdentifierType, value: str) -> dict[str, Any]:
             "first_seen": None,
             "last_seen": None,
             "scam_type": None,
+            "scam_types": [],
             "display_value": value if verified else mask(id_type, value),
             "evidence": [],
             "challenged": bool(row and row["challenged"]),
@@ -79,6 +80,8 @@ def _answer(id_type: IdentifierType, value: str) -> dict[str, Any]:
         "first_seen": fmt(row["first_seen"]),
         "last_seen": fmt(row["last_seen"]),
         "scam_type": row["top_scam_type"],
+        # Every type people reported, one vote per counted person; scam_type is the first.
+        "scam_types": (row["explain"] or {}).get("types", []),
         "display_value": value if row["unmasked"] else mask(id_type, value),
         "evidence": [
             {
