@@ -13,7 +13,7 @@ from app.db import get_engine
 from app.domain.areas import AREAS
 from app.domain.identifiers import InvalidIdentifier
 from app.repos import store
-from app.services import areas, challenges, lookup, reports
+from app.services import areas, challenges, insights, lookup, reports
 
 router = APIRouter()
 
@@ -90,6 +90,29 @@ def get_alerts(pincode: str = Query("")) -> Any:
         return areas.area_alerts(pincode, now())
     except areas.UnknownArea as exc:
         return error(400, str(exc))
+
+
+@router.get("/city")
+def get_city(pincode: str = Query(""), days: str | None = None) -> Any:
+    """The app's city sheet: hot areas, trending scam types, known scam numbers, a recent feed."""
+    try:
+        d = _positive(days, 7, 90)
+    except ValueError:
+        return error(400, "days must be a positive number up to 90")
+    try:
+        return insights.city_pulse(pincode, d, now())
+    except areas.UnknownArea as exc:
+        return error(400, str(exc))
+
+
+@router.get("/stats")
+def get_stats(days: str | None = None) -> Any:
+    """Live numbers across VeriFire, counted after the trust engine."""
+    try:
+        d = _positive(days, 30, 365)
+    except ValueError:
+        return error(400, "days must be a positive number up to 365")
+    return insights.live_stats(d, now())
 
 
 @router.get("/areas")

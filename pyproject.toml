@@ -33,6 +33,10 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 # The judge simulator cites PRD clauses inline in each check; long lines read better than wrapped ones.
 "judge/*" = ["E501"]
 
+[tool.ruff.format]
+# Same reason: the simulator's scenario tables are laid out by hand, one case per line.
+exclude = ["judge/*"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

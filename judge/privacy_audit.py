@@ -124,7 +124,7 @@ def main() -> int:
                              f"{e.scenario} report_count={b['report_count']} distinct={b['distinct_reporters']} shown {b['display_value']}")
                 low = json.dumps(b, ensure_ascii=False).lower()
                 au.check("4. no accusing words in lookup replies", not [x for x in ACCUSING_EN if x in low], b.get("summary", ""))
-        for pin, (_, _, lat, lng) in AREAS.items():
+        for pin in AREAS:
             for radius in (2, 25, 3000):
                 text = c.get("/map", params={"pincode": pin, "radius_km": radius}).text
                 au.check("4. map replies leak nothing", not leaks(text, rids, ips, notes))

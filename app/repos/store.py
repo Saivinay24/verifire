@@ -175,6 +175,45 @@ def area_reports(
     return conn.execute(sa.select(*cols).where(*where)).mappings().all()
 
 
+def reports_with_identifiers(
+    conn: Connection, since: datetime, pincodes: Sequence[str] | None = None
+) -> Sequence[RowMapping]:
+    """Reports since a time, each with its identifier's public state. Never the reporter or the note."""
+    where = [reports.c.occurred_at >= since]
+    if pincodes is not None:
+        where.append(reports.c.pincode.in_(list(pincodes)))
+    cols = (
+        reports.c.pincode,
+        reports.c.occurred_at,
+        reports.c.channel,
+        reports.c.scam_type,
+        reports.c.amount_lost_inr,
+        reports.c.alert_weight,
+        reports.c.reporter_key,
+        reports.c.ip_key,
+        reports.c.identifier_id,
+        identifiers.c.id_type,
+        identifiers.c.value_norm,
+        identifiers.c.verdict,
+        identifiers.c.unmasked,
+        identifiers.c.verified,
+        identifiers.c.challenged,
+        identifiers.c.distinct_reporters,
+        identifiers.c.top_scam_type,
+        identifiers.c.last_seen,
+    )
+    return (
+        conn.execute(
+            sa.select(*cols)
+            .join(identifiers, identifiers.c.id == reports.c.identifier_id)
+            .where(*where)
+            .order_by(reports.c.occurred_at.desc())
+        )
+        .mappings()
+        .all()
+    )
+
+
 def area_scam_types_between(conn: Connection, pincode: str, since: datetime, until: datetime) -> set[str]:
     """Scam types seen in an area in a window, from any accepted report (the stricter novelty test)."""
     rows = conn.execute(
