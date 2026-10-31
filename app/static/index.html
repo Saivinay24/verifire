@@ -154,6 +154,7 @@
       </div>
     </div>
     <dl class="facts" id="facts"></dl>
+    <button class="see-all" id="seeAll" type="button" hidden><span id="seeAllText"></span><svg aria-hidden="true"><use href="#i-chevron"/></svg></button>
     <p class="advice" id="advice"></p>
     <div class="sheet-actions">
       <a class="pill pill-strong" id="call1930" href="tel:1930">
@@ -164,6 +165,18 @@
       </button>
     </div>
     <button class="link" id="disputeLink" type="button" data-t="dispute_link">Is this your number? Ask for a review</button>
+  </section>
+
+  <!-- Every report filed on one number: when, how, what, where, and proof badges. Never who or what they wrote. -->
+  <section class="sheet glass-strong" id="reportsSheet" role="dialog" aria-modal="true" aria-labelledby="reportsTitle" hidden>
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="rl-head">
+      <button class="icon-btn glass" id="reportsBack" type="button" aria-label="Back"><svg aria-hidden="true"><use href="#i-back"/></svg></button>
+      <div><h2 id="reportsTitle" data-t="rl_title">Reports filed</h2><p class="rl-value" id="reportsValue"></p></div>
+    </div>
+    <p class="step-sub" id="reportsSub"></p>
+    <div class="list" id="reportsList"></div>
+    <p class="pull-foot" data-t="rl_note">Who reported, what they wrote and how much they lost are never shown. We don't keep what people write.</p>
   </section>
 
   <!-- Report flow: a real three-step sequence -->

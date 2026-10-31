@@ -584,3 +584,15 @@ div.msg-id { cursor: default; }
 #hereTypesHead { margin-top: 8px; }
 .ex-list .msg-id .badge { display: inline-block; margin-top: 6px; max-width: 100%; }
 .ex-list .msg-id b { white-space: normal; overflow-wrap: anywhere; }
+
+/* "See all reports" on the result card, and the list it opens. */
+.see-all { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 8px 0 0; padding: 12px 14px;
+           border-radius: var(--r-card); background: rgba(47, 91, 234, 0.07); color: var(--accent); font-weight: 600; font-size: 15px; }
+.see-all svg { width: 18px; height: 18px; }
+.rl-head { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+.rl-head h2 { margin: 0; }
+.rl-value { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; font-weight: 600; word-break: break-all; }
+#reportsSheet .step-sub { margin: 12px 2px 12px; }
+.rl-proof { display: flex; flex-wrap: wrap; gap: 6px; }
+.rl-proof:not(:empty) { margin-top: 6px; }
+.rl-tag { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: var(--r-pill); background: rgba(20, 34, 51, 0.06); color: var(--ink-2); }

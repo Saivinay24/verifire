@@ -151,6 +151,33 @@ def recent_evidence(
     )
 
 
+def filed_reports(
+    conn: Connection, identifier_id: int, limit: int, after: datetime | None = None
+) -> Sequence[RowMapping]:
+    """Every report on one identifier for the "all reports" list. Never the reporter, IP, note or amount."""
+    where = [reports.c.identifier_id == identifier_id]
+    if after is not None:  # Reports set aside by an upheld review are not shown any more.
+        where.append(reports.c.received_at > after)
+    return (
+        conn.execute(
+            sa.select(
+                reports.c.occurred_at,
+                reports.c.channel,
+                reports.c.scam_type,
+                reports.c.pincode,
+                reports.c.note_len,
+                reports.c.has_screenshot,
+                (sa.func.coalesce(reports.c.amount_lost_inr, 0) > 0).label("lost_money"),
+            )
+            .where(*where)
+            .order_by(reports.c.occurred_at.desc(), reports.c.id.desc())
+            .limit(limit)
+        )
+        .mappings()
+        .all()
+    )
+
+
 def open_challenge(conn: Connection, identifier_id: int) -> RowMapping | None:
     return (
         conn.execute(

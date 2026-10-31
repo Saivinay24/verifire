@@ -127,6 +127,17 @@ def main() -> int:
                     hidden.add(full)
                 low = json.dumps(b, ensure_ascii=False).lower()
                 au.check("4. no accusing words in lookup replies", not [x for x in ACCUSING_EN if x in low], b.get("summary", ""))
+            # The "all reports" list: same masking as lookup, only the allowed fields, nothing private.
+            lst = c.get("/lookup/reports", params={"type": e.id_type, "value": e.raw})
+            au.check("4. all-reports list leaks nothing", not leaks(lst.text, rids, ips, notes), e.scenario)
+            if lst.status_code == 200:
+                lb = lst.json()
+                allowed = {"occurred_at", "channel", "scam_type", "pincode", "locality", "city", "screenshot", "lost_money", "described"}
+                au.check("4. all-reports rows have only when, how, what, area and proof flags",
+                         all(set(x) <= allowed for x in lb["reports"]), str([sorted(x) for x in lb["reports"][:1]]))
+                if lb["distinct_reporters"] < 3 and e.kind != "verified" and e.canonical:
+                    full = e.canonical[3:] if e.id_type == "phone" else e.canonical.lower().removeprefix("https://")
+                    au.check("4. all-reports list hidden under 3 people", full not in lst.text.lower(), f"{e.scenario} {e.canonical}")
         for pin in AREAS:
             for radius in (2, 25, 3000):
                 text = c.get("/map", params={"pincode": pin, "radius_km": radius}).text

@@ -1,4 +1,4 @@
-# Privacy audit, 2026-10-31 22:01 IST
+# Privacy audit, 2026-11-01 02:05 IST
 
 Target: `http://localhost:8077`, seeds [9001, 9002] (1332 reports loaded), database and server log inspected directly.
 
@@ -10,6 +10,9 @@ Target: `http://localhost:8077`, seeds [9001, 9002] (1332 reports loaded), datab
 | ✅ 3. server logs hold no reporter id, IP, note or reported identifier | 1/1 |
 | ✅ 3. server logs were actually written during the audit | 1/1 |
 | ✅ 4. alert replies leak nothing | 50/50 |
+| ✅ 4. all-reports list hidden under 3 people | 86/86 |
+| ✅ 4. all-reports list leaks nothing | 172/172 |
+| ✅ 4. all-reports rows have only when, how, what, area and proof flags | 172/172 |
 | ✅ 4. attacked numbers are never unmasked (spam, fake accounts, friends) | 80/80 |
 | ✅ 4. city feed has only time, channel, type, area, masked value | 1681/1681 |
 | ✅ 4. city feed times are rounded to the hour | 1681/1681 |

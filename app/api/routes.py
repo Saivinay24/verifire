@@ -15,7 +15,7 @@ from app.db import get_engine
 from app.domain.areas import AREAS
 from app.domain.identifiers import InvalidIdentifier
 from app.repos import store
-from app.services import areas, challenges, explore, insights, lookup, reports
+from app.services import areas, challenges, explore, insights, lookup, report_list, reports
 
 router = APIRouter()
 
@@ -67,6 +67,16 @@ def get_lookup(type: str = Query(""), value: str = Query("")) -> Any:
     _settle_due()
     try:
         return lookup.lookup(type, value)
+    except InvalidIdentifier as exc:
+        return error(400, str(exc))
+
+
+@router.get("/lookup/reports")
+def get_lookup_reports(type: str = Query(""), value: str = Query("")) -> Any:
+    """Every report filed on one identifier, without who, what they wrote, or how much (extra)."""
+    _settle_due()
+    try:
+        return report_list.reports_filed(type, value)
     except InvalidIdentifier as exc:
         return error(400, str(exc))
 

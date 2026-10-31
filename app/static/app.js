@@ -122,6 +122,10 @@ const T = {
     here_sub: (n, city, total) => `${n ? `${n} ${n === 1 ? "report" : "reports"} counted here` : "Nothing counted here this week"}. ${total} across ${city}.`,
     here_types: (a) => `Scams in ${a}`, across: (c) => `Across ${c}`, known_area: "Numbers reported here", recent_area: "Recent reports here",
     here_none: "No counted reports here this week.", near_me: "Near me", f_also: "Also reported as",
+    see_all: (n) => n === 1 ? "See the 1 report filed" : `See all ${n} reports filed`, rl_title: "Reports filed",
+    rl_sub: (n, p) => `${n} ${n === 1 ? "report" : "reports"}, counted as ${p} ${p === 1 ? "person" : "people"}. Repeats and look-alike accounts count once.`,
+    rl_more: (n) => `Showing the latest ${n}.`, rl_shot: "Screenshot", rl_lost: "Lost money", rl_said: "Described it",
+    rl_note: "Who reported, what they wrote and how much they lost are never shown. We don't keep what people write.",
     pull_sub: (counted, aside) => aside ? `${counted} reports counted. ${aside} repeats and fake reports set aside.` : `${counted} reports counted.`,
     pull_empty: (c) => `No reports counted in ${c} in the last 7 days.`,
     trending: "Trending scams", known_here: "Numbers reported as scams", by_area: "By area", recent: "Recent reports",
@@ -257,6 +261,10 @@ const T = {
     here_sub: (n, city, total) => `${n ? `यहाँ ${n} रिपोर्ट गिनी गईं` : "इस हफ़्ते यहाँ कुछ नहीं गिना गया"}। पूरे ${city} में ${total}।`,
     here_types: (a) => `${a} में स्कैम`, across: (c) => `पूरे ${c} में`, known_area: "यहाँ रिपोर्ट किए गए नंबर", recent_area: "यहाँ की हाल की रिपोर्ट",
     here_none: "इस हफ़्ते यहाँ कोई गिनी गई रिपोर्ट नहीं।", near_me: "मेरे पास", f_also: "इसके रूप में भी रिपोर्ट",
+    see_all: (n) => `सभी ${n} रिपोर्ट देखें`, rl_title: "दर्ज रिपोर्ट",
+    rl_sub: (n, p) => `${n} रिपोर्ट, ${p} लोगों के रूप में गिनी गईं। एक ही व्यक्ति या मिलते-जुलते अकाउंट एक बार गिने जाते हैं।`,
+    rl_more: (n) => `आखिरी ${n} दिखाई जा रही हैं।`, rl_shot: "स्क्रीनशॉट", rl_lost: "पैसे गए", rl_said: "बताया क्या हुआ",
+    rl_note: "किसने रिपोर्ट की, क्या लिखा और कितने पैसे गए, यह कभी नहीं दिखाया जाता। लोग जो लिखते हैं, हम रखते ही नहीं।",
     pull_sub: (counted, aside) => aside ? `${counted} रिपोर्ट गिनी गईं। ${aside} दोहराई या नकली रिपोर्ट अलग रखी गईं।` : `${counted} रिपोर्ट गिनी गईं।`,
     pull_empty: (c) => `पिछले 7 दिनों में ${c} में कोई रिपोर्ट नहीं गिनी गई।`,
     trending: "अभी चल रहे स्कैम", known_here: "स्कैम के रूप में रिपोर्ट किए गए नंबर", by_area: "इलाके के हिसाब से", recent: "हाल की रिपोर्ट",
@@ -590,8 +598,42 @@ function showResult(r) {
   const locked = ["overruled", "rejected", "lapsed"].includes(r.dispute?.status);
   $("#disputeLink").hidden = v === "VERIFIED_BUSINESS" || r.report_count === 0 || r.challenged || locked;
   $("#reportThis").hidden = v === "VERIFIED_BUSINESS";
+  const canList = v !== "VERIFIED_BUSINESS" && r.report_count > 0 && lastChecked;
+  $("#seeAll").hidden = !canList;
+  if (canList) $("#seeAllText").textContent = t("see_all", r.report_count);
   openSheet("#resultSheet");
 }
+
+// Every report on this number, newest first: when (to the hour), how, what, which area, and proof
+// badges. Never who reported, what they wrote or how much: the server does not send any of that.
+async function openReports() {
+  if (!lastChecked) return;
+  const { kind, value } = lastChecked;
+  let r;
+  try { r = await api(`/lookup/reports?type=${encodeURIComponent(kind)}&value=${encodeURIComponent(value)}`); }
+  catch (err) { if (!(err instanceof LicenceExpired)) toast(err.message); return; }
+  closeSheet("#resultSheet");
+  $("#reportsValue").textContent = fmtValue(kind, r.display_value);
+  $("#reportsSub").textContent = t("rl_sub", r.report_count, r.distinct_reporters)
+    + (r.shown < r.report_count ? " " + t("rl_more", r.shown) : "");
+  const list = $("#reportsList"); list.replaceChildren();
+  for (const x of r.reports) {
+    const ch = CHANNELS.find((c) => c.id === x.channel) || CHANNELS[CHANNELS.length - 1];
+    const el = row("div", `<span class="ch-icon"><svg aria-hidden="true"><use href="#${ch.icon}"/></svg></span><span class="grow"><strong></strong><small></small><span class="rl-proof"></span></span>`);
+    el.querySelector("strong").textContent = typeInfo(x.scam_type)[lang];
+    el.querySelector("small").textContent = [ch[lang], x.locality, ago(x.occurred_at)].filter(Boolean).join(" · ");
+    const proof = el.querySelector(".rl-proof");
+    for (const [on, k] of [[x.screenshot, "rl_shot"], [x.lost_money, "rl_lost"], [x.described, "rl_said"]]) {
+      if (!on) continue;
+      const b = document.createElement("span"); b.className = "rl-tag"; b.textContent = t(k); proof.append(b);
+    }
+    list.append(el);
+  }
+  openSheet("#reportsSheet");
+  $("#reportsSheet").scrollTop = 0;
+}
+$("#seeAll").addEventListener("click", openReports);
+$("#reportsBack").addEventListener("click", () => { closeSheet("#reportsSheet"); openSheet("#resultSheet"); });
 $("#reportThis").addEventListener("click", () => { closeSheet("#resultSheet"); openFlow(lastChecked?.value || ""); });
 
 // ---------------- Pasted message ----------------
