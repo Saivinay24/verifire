@@ -17,7 +17,7 @@ const T = {
     check_label: "Number, UPI ID or link", check_placeholder: "Paste a number, UPI ID or link",
     fineprint: "Anonymous. We save only the area, never who you are.",
     call1930: "Lost money? Call 1930", report_this: "Report this",
-    dispute_link: "Is this your business? Ask for a review",
+    dispute_link: "Is this your number? Ask for a review",
     step1: "How did they reach you?", step2: "What did they try?", step3: "Who was it?",
     step3_sub: "Their number, UPI ID or link. Not yours.",
     value_label: "Their number, UPI ID or link", value_placeholder: "Their number, UPI ID or link",
@@ -29,7 +29,7 @@ const T = {
     map_title: "Scams reported nearby", map_sub: "Last 7 days, grouped by area. Never anyone's exact location.",
     dispute_title: "Ask for a review",
     dispute_sub: "We mark the number as under review. It is never shown as a scam while we check.",
-    d_name: "Business name", d_email: "Email for our reply", d_proof: "Proof, e.g. GST or shop licence number",
+    d_name: "Your name or business name", d_email: "Email for our reply", d_proof: "Proof, e.g. GST or shop licence number",
     d_send: "Send for review", d_done: "Sent. This number is now under review.",
     expired_title: "Licence expired. Contact your provider.",
     expired_sub: "Your data is safe. The app works again as soon as a new licence is added.", retry: "Try again",
@@ -79,7 +79,10 @@ const T = {
         "My details:", "Name: [your name]", "Phone: [your phone number]", "Email: [your email]", "", "Thank you.",
       ].join("\n"),
     }),
-    stats_cta: "Stats", pull_more: "Show more",
+    stats_cta: "Stats", pull_more: "Show more", menu: "Menu", close: "Close",
+    mine_title: "Is my number reported?", mine_sub: "See what people said about your number, and ask for a review if it's wrong.",
+    mine_how: "Type your number, UPI ID or link. You'll see exactly what anyone else sees. If people reported it by mistake, you can ask for a review from there.",
+    mine_placeholder: "Your number, UPI ID or link",
     pull_title: (c) => `${c}, last 7 days`,
     pull_sub: (counted, aside) => aside ? `${counted} reports counted. ${aside} repeats and fake reports set aside.` : `${counted} reports counted.`,
     pull_empty: (c) => `No reports counted in ${c} in the last 7 days.`,
@@ -113,7 +116,7 @@ const T = {
     check_label: "नंबर, UPI ID या लिंक", check_placeholder: "नंबर, UPI ID या लिंक डालें",
     fineprint: "गुमनाम। हम सिर्फ इलाका रखते हैं, आपकी पहचान कभी नहीं।",
     call1930: "पैसे गए? 1930 पर कॉल करें", report_this: "इसकी रिपोर्ट करें",
-    dispute_link: "क्या यह आपका बिज़नेस नंबर है? जांच के लिए कहें",
+    dispute_link: "क्या यह आपका नंबर है? जांच के लिए कहें",
     step1: "उन्होंने आपसे कैसे संपर्क किया?", step2: "उन्होंने क्या करने की कोशिश की?", step3: "वह कौन था?",
     step3_sub: "उनका नंबर, UPI ID या लिंक। आपका नहीं।",
     value_label: "उनका नंबर, UPI ID या लिंक", value_placeholder: "उनका नंबर, UPI ID या लिंक",
@@ -125,7 +128,7 @@ const T = {
     map_title: "आसपास रिपोर्ट किए गए स्कैम", map_sub: "पिछले 7 दिन, इलाके के हिसाब से। किसी की सटीक जगह कभी नहीं।",
     dispute_title: "जांच के लिए कहें",
     dispute_sub: "हम नंबर को जांच में रखेंगे। जांच के दौरान इसे स्कैम नहीं दिखाया जाएगा।",
-    d_name: "बिज़नेस का नाम", d_email: "जवाब के लिए ईमेल", d_proof: "सबूत, जैसे GST या दुकान लाइसेंस नंबर",
+    d_name: "आपका या बिज़नेस का नाम", d_email: "जवाब के लिए ईमेल", d_proof: "सबूत, जैसे GST या दुकान लाइसेंस नंबर",
     d_send: "जांच के लिए भेजें", d_done: "भेज दिया। यह नंबर अब जांच में है।",
     expired_title: "लाइसेंस समाप्त हो गया। अपने प्रदाता से संपर्क करें।",
     expired_sub: "आपका डेटा सुरक्षित है। नया लाइसेंस जुड़ते ही ऐप फिर से चलेगा।", retry: "फिर कोशिश करें",
@@ -175,7 +178,10 @@ const T = {
         "मेरा विवरण:", "नाम: [आपका नाम]", "फ़ोन: [आपका फ़ोन नंबर]", "ईमेल: [आपका ईमेल]", "", "धन्यवाद।",
       ].join("\n"),
     }),
-    stats_cta: "आंकड़े", pull_more: "और देखें",
+    stats_cta: "आंकड़े", pull_more: "और देखें", menu: "मेन्यू", close: "बंद करें",
+    mine_title: "क्या मेरे नंबर की रिपोर्ट हुई है?", mine_sub: "देखें लोगों ने आपके नंबर के बारे में क्या कहा, और गलत हो तो जांच के लिए कहें।",
+    mine_how: "अपना नंबर, UPI ID या लिंक लिखें। आपको वही दिखेगा जो बाकी सबको दिखता है। अगर गलती से रिपोर्ट हुई है, तो वहीं से जांच के लिए कह सकते हैं।",
+    mine_placeholder: "आपका नंबर, UPI ID या लिंक",
     pull_title: (c) => `${c}, पिछले 7 दिन`,
     pull_sub: (counted, aside) => aside ? `${counted} रिपोर्ट गिनी गईं। ${aside} दोहराई या नकली रिपोर्ट अलग रखी गईं।` : `${counted} रिपोर्ट गिनी गईं।`,
     pull_empty: (c) => `पिछले 7 दिनों में ${c} में कोई रिपोर्ट नहीं गिनी गई।`,
@@ -418,6 +424,7 @@ function closeSheet(sel) { $(sel).hidden = true; if (!document.querySelector(".s
 $("#scrim").addEventListener("click", () => document.querySelectorAll(".sheet").forEach((s) => closeSheet("#" + s.id)));
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  if (!$("#drawer").hidden) { setDrawer(false); return; }
   const open = document.querySelector(".sheet:not([hidden])");
   if (open) closeSheet("#" + open.id); else if (!$("#reportFlow").hidden) closeFlow(); else if (!$("#mapView").hidden) closeMap();
   else if (!$("#statsView").hidden) closeStats();
@@ -697,6 +704,31 @@ $("#cShare").addEventListener("click", async () => {
 $("#cEmail").addEventListener("click", () => {
   // No address: they pick their bank's official address in their own mail app.
   location.href = `mailto:?subject=${encodeURIComponent(draftSubject)}&body=${encodeURIComponent($("#complaintText").value)}`;
+});
+
+// ---------------- Side menu ----------------
+function setDrawer(open) {
+  $("#drawer").hidden = !open; $("#drawerScrim").hidden = !open;
+  $("#menuBtn").setAttribute("aria-expanded", String(open));
+  if (open) $("#menuMine").focus({ preventScroll: true }); else $("#menuBtn").focus({ preventScroll: true });
+}
+const fromMenu = (fn) => () => { setDrawer(false); fn(); };
+$("#menuBtn").addEventListener("click", () => setDrawer(true));
+$("#drawerClose").addEventListener("click", () => setDrawer(false));
+$("#drawerScrim").addEventListener("click", () => setDrawer(false));
+$("#menuReport").addEventListener("click", fromMenu(() => openFlow("")));
+$("#menuMap").addEventListener("click", fromMenu(openMap));
+$("#menuStats").addEventListener("click", fromMenu(openStats));
+$("#menuMine").addEventListener("click", fromMenu(() => {
+  $("#mineForm").reset(); updateKind($("#mineInput"), $("#mineKind")); openSheet("#mineSheet");
+}));
+// The owner sees the same answer as anyone else; the review link is on that result.
+$("#mineInput").addEventListener("input", () => { $("#mineBtn").disabled = !updateKind($("#mineInput"), $("#mineKind")); });
+$("#mineForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const value = $("#mineInput").value.trim(), kind = detectKind(value);
+  if (!kind) { toast(t("invalid")); return; }
+  closeSheet("#mineSheet"); lookupValue(kind, value);
 });
 
 // ---------------- Dispute ----------------
