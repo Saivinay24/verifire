@@ -8,11 +8,12 @@ is a single indexed read.
 import hashlib
 import hmac
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import Connection
+from sqlalchemy import Connection, RowMapping
 from sqlalchemy.exc import IntegrityError
 
 from app.config import get_settings
@@ -23,7 +24,7 @@ from app.domain.areas import AREAS_BY_PINCODE
 from app.domain.catalog import canonical_channel, canonical_scam_type, verified_owner
 from app.domain.identifiers import IdentifierType, InvalidIdentifier, normalise, parse_type
 from app.domain.notes import extract
-from app.domain.timefmt import InvalidTime, parse
+from app.domain.timefmt import InvalidTime, fmt, parse
 from app.repos import store
 
 MAX_CLOCK_SKEW = timedelta(minutes=5)
@@ -149,7 +150,7 @@ def submit(payload: dict[str, Any], now: datetime) -> Accepted:
                 raise RateLimited
             merged = store.count_identifier_reports(conn, ident["id"]) > 0
             store.insert_report(conn, {**row, "identifier_id": ident["id"]})
-            recompute(conn, ident["id"], verified=ident["verified"], challenged=ident["challenged"])
+            recompute(conn, ident["id"], verified=ident["verified"])
             return Accepted(report["report_id"], case_id(ident["id"]), merged)
     except IntegrityError:
         # Two copies of one report raced; the first one won. Answer like a duplicate.
@@ -160,11 +161,10 @@ def submit(payload: dict[str, Any], now: datetime) -> Accepted:
         return Accepted(report["report_id"], case_id(existing["identifier_id"]), True)
 
 
-def recompute(conn: Connection, identifier_id: int, *, verified: bool, challenged: bool) -> trust.Verdict:
-    rows = store.identifier_reports(conn, identifier_id)
-    hourly = store.reporter_hourly_counts(conn, identifier_id)
-    flagged = store.reporters_of_verified(conn, {r["reporter_key"] for r in rows})
-    facts = [
+def _facts(
+    rows: Sequence[RowMapping], hourly: dict[str, int], flagged: set[str], verified: bool
+) -> list[trust.ReportFacts]:
+    return [
         trust.ReportFacts(
             id=str(r["id"]),
             reporter_key=r["reporter_key"],
@@ -186,13 +186,71 @@ def recompute(conn: Connection, identifier_id: int, *, verified: bool, challenge
         )
         for r in rows
     ]
+
+
+def overruled(dispute: RowMapping, rows: Sequence[RowMapping], facts: Sequence[trust.ReportFacts]) -> bool:
+    """New victims overrule a dispute: people and networks not seen before it, reporting after it,
+    who on their own clear the full KNOWN_SCAM bar, spread over DISPUTE_OVERRULE_SPREAD.
+
+    Times are the server's receive times, which no client can set. Reports from anyone who had
+    already reported the number before the dispute never count: they are the original accusers.
+    """
+    opened = dispute["created_at"]
+    seen_people = {r["reporter_key"] for r in rows if r["received_at"] <= opened}
+    seen_networks = {r["ip_key"] for r in rows if r["received_at"] <= opened}
+    after = [
+        i
+        for i, r in enumerate(rows)
+        if r["received_at"] > opened
+        and r["reporter_key"] not in seen_people
+        and r["ip_key"] not in seen_networks
+    ]
+    if not after:
+        return False
+    fresh = trust.evaluate([facts[i] for i in after])
+    if not trust.established(fresh, C.KNOWN_MIN_SCORE):
+        return False
+    counted = [rows[i]["received_at"] for i in after if facts[i].id in fresh.alert_ids]
+    return len(counted) >= 2 and max(counted) - min(counted) >= C.DISPUTE_OVERRULE_SPREAD
+
+
+def recompute(conn: Connection, identifier_id: int, *, verified: bool) -> trust.Verdict:
+    """Re-score one identifier and settle its open dispute, if any (lapsed or overruled)."""
+    ident = store.identifier_by_id(conn, identifier_id)
+    every = store.identifier_reports(conn, identifier_id)
+    cleared = ident["cleared_before"]
+    # An upheld review sets aside everything received up to the decision; the number starts fresh.
+    rows = [r for r in every if cleared is None or r["received_at"] > cleared]
+    hourly = store.reporter_hourly_counts(conn, identifier_id)
+    flagged = store.reporters_of_verified(conn, {r["reporter_key"] for r in rows})
+    facts = _facts(rows, hourly, flagged, verified)
     result = trust.evaluate(facts)
+
+    dispute = store.open_challenge(conn, identifier_id)
+    challenged = False
+    # The dispute's public state rides in `explain`, so a lookup needs no extra query.
+    state = (ident["explain"] or {}).get("dispute")
+    if dispute is not None:
+        if store.db_now(conn) >= dispute["closes_at"]:
+            store.close_challenge(conn, dispute["id"], "lapsed")
+            state = {"status": "lapsed"}
+        elif overruled(dispute, rows, facts):
+            store.close_challenge(conn, dispute["id"], "overruled")
+            state = {"status": "overruled"}
+        else:
+            challenged = True
+            state = {"status": "under_review", "closes_at": fmt(dispute["closes_at"])}
+    elif state and state.get("status") == "under_review":  # Just decided by a reviewer.
+        last = store.last_closed_challenge(conn, identifier_id)
+        state = {"status": last["status"]} if last is not None else None
     verdict = trust.decide(verified=verified, challenged=challenged, report_count=len(rows), result=result)
 
     changes = []
-    for r in rows:
+    for r in every:
         group = result.group_of.get(str(r["id"]))
-        weight = 0 if verified else int(str(r["id"]) in result.alert_ids)
+        weight = (
+            0 if verified else int(str(r["id"]) in result.alert_ids)
+        )  # Set-aside rows: not in result, so 0.
         if r["group_key"] != group or r["alert_weight"] != weight:
             changes.append({"rid": r["id"], "g": group, "w": weight})
     store.update_report_trust(conn, changes)
@@ -212,7 +270,7 @@ def recompute(conn: Connection, identifier_id: int, *, verified: bool, challenge
             "last_seen": max((r["occurred_at"] for r in rows), default=None),
             "top_scam_type": types.most_common(1)[0][0] if types else None,
             "challenged": challenged,
-            "explain": result.explain,
+            "explain": {**result.explain, "dispute": state} if state else result.explain,
         },
     )
     return verdict

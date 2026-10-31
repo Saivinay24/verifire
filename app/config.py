@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     reporter_hmac_secret: str = "dev-only-secret-change-me"
     allowed_origin: str = "*"
     log_level: str = "INFO"
+    # Key for the dispute reviewer's endpoints and page. Unset means reviewing is switched off.
+    review_key: str = ""
 
     @property
     def sqlalchemy_url(self) -> str:

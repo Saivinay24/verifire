@@ -32,6 +32,7 @@ identifiers = sa.Table(
     sa.Column("last_seen", sa.DateTime(timezone=True)),
     sa.Column("top_scam_type", sa.Text),
     sa.Column("challenged", sa.Boolean),
+    sa.Column("cleared_before", sa.DateTime(timezone=True)),
     sa.Column("explain", pg.JSONB),
     sa.Column("updated_at", sa.DateTime(timezone=True)),
 )
@@ -71,6 +72,10 @@ challenges = sa.Table(
     sa.Column("contact_email", sa.Text),
     sa.Column("proof_note", sa.Text),
     sa.Column("created_at", sa.DateTime(timezone=True)),
+    sa.Column("closes_at", sa.DateTime(timezone=True)),
+    sa.Column("decided_at", sa.DateTime(timezone=True)),
+    sa.Column("ip_key", sa.String(64)),
+    sa.Column("claimant_key", sa.String(64)),
 )
 
 licence_state = sa.Table(

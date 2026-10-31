@@ -3,12 +3,14 @@
 Routers only translate HTTP to service calls and errors to the `{"error": ...}` envelope.
 """
 
+import hmac
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Query, Request
 from fastapi.responses import JSONResponse
 
+from app.config import get_settings
 from app.db import get_engine
 from app.domain.areas import AREAS
 from app.domain.identifiers import InvalidIdentifier
@@ -24,6 +26,12 @@ def error(status: int, message: str) -> JSONResponse:
 
 def now() -> datetime:
     return datetime.now(UTC)
+
+
+def _settle_due() -> None:
+    """Close disputes past their deadline (throttled to once a minute), then drop stale answers."""
+    if challenges.sweep():
+        lookup.invalidate()
 
 
 def _connection_prefix(request: Request) -> str:
@@ -56,6 +64,7 @@ def post_report(request: Request, payload: Annotated[Any, Body()]) -> Any:
 
 @router.get("/lookup")
 def get_lookup(type: str = Query(""), value: str = Query("")) -> Any:
+    _settle_due()
     try:
         return lookup.lookup(type, value)
     except InvalidIdentifier as exc:
@@ -86,6 +95,7 @@ def get_map(pincode: str = Query(""), days: str | None = None, radius_km: str | 
 
 @router.get("/alerts")
 def get_alerts(pincode: str = Query("")) -> Any:
+    _settle_due()
     try:
         return areas.area_alerts(pincode, now())
     except areas.UnknownArea as exc:
@@ -95,6 +105,7 @@ def get_alerts(pincode: str = Query("")) -> Any:
 @router.get("/city")
 def get_city(pincode: str = Query(""), days: str | None = None) -> Any:
     """The app's city sheet: hot areas, trending scam types, known scam numbers, a recent feed."""
+    _settle_due()
     try:
         d = _positive(days, 7, 90)
     except ValueError:
@@ -108,6 +119,7 @@ def get_city(pincode: str = Query(""), days: str | None = None) -> Any:
 @router.get("/stats")
 def get_stats(days: str | None = None) -> Any:
     """Live numbers across VeriFire, counted after the trust engine."""
+    _settle_due()
     try:
         d = _positive(days, 30, 365)
     except ValueError:
@@ -130,12 +142,51 @@ def admin_reset() -> dict[str, Any]:
 
 
 @router.post("/challenges", status_code=201)
-def post_challenge(payload: Annotated[Any, Body()]) -> Any:
+def post_challenge(request: Request, payload: Annotated[Any, Body()]) -> Any:
     if not isinstance(payload, dict):
         return error(400, "body must be a JSON object")
     try:
-        result = challenges.challenge(payload)
+        result = challenges.challenge(payload, _connection_prefix(request))
         lookup.invalidate()
         return result
     except InvalidIdentifier as exc:
         return error(400, str(exc))
+    except challenges.AlreadyReviewed as exc:
+        # The last dispute on this number ended against the claim recently; it can't be reopened here.
+        return JSONResponse(status_code=409, content={"error": "ALREADY_REVIEWED", "status": exc.status})
+    except challenges.TooMany:
+        return error(429, "RATE_LIMITED")
+
+
+# ---- Dispute review (not part of the brief's seven; behind REVIEW_KEY) ----
+
+
+def _reviewer(request: Request) -> JSONResponse | None:
+    key = get_settings().review_key
+    if not key:
+        return error(404, "reviewing is not switched on")
+    given = request.headers.get("x-review-key", "")
+    if not hmac.compare_digest(given.encode(), key.encode()):
+        return error(401, "wrong review key")
+    return None
+
+
+@router.get("/review/disputes")
+def get_review_queue(request: Request, status: str = Query("open")) -> Any:
+    if (denied := _reviewer(request)) is not None:
+        return denied
+    challenges.sweep(force=True)
+    return challenges.review_queue(status)
+
+
+@router.post("/review/disputes/{challenge_id}")
+def post_review_decision(request: Request, challenge_id: str, payload: Annotated[Any, Body()]) -> Any:
+    if (denied := _reviewer(request)) is not None:
+        return denied
+    decision = payload.get("decision") if isinstance(payload, dict) else None
+    try:
+        result = challenges.decide(challenge_id, str(decision))
+    except challenges.NotFound as exc:
+        return error(400, str(exc))
+    lookup.invalidate()
+    return result

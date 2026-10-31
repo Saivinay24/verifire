@@ -95,3 +95,16 @@ SPIKE_RATIO = 2.0
 RATE_WINDOW = timedelta(hours=1)
 RATE_SAME_IDENTIFIER = 3  # Repeats of one identifier per reporter per hour before 429.
 RATE_PER_REPORTER = 20  # Reports per reporter per hour, any identifier, before 429.
+
+# --- Disputes (the owner of a number asks for a review) --------------------------------------
+# Brief: while under review a number is never KNOWN_SCAM. These bound how long and how often that
+# can hold, so a dispute protects a wrongly reported owner without becoming a scammer's shield.
+DISPUTE_REVIEW_WINDOW = timedelta(days=7)  # Every dispute ends: decided, overruled, or lapsed by then.
+# Overruled by new victims: people and networks not seen before the dispute, reporting after it,
+# who on their own clear the full KNOWN_SCAM bar above...
+DISPUTE_OVERRULE_SPREAD = timedelta(hours=6)  # ...spread over at least 6 hours, so a burst fired
+# right after a dispute (the harassment pattern) can never break it; an active scam keeps
+# producing victims over hours and days.
+DISPUTE_LOCK = timedelta(days=90)  # After rejected, overruled or lapsed: no new dispute on that number.
+DISPUTE_NETWORK_WINDOW = timedelta(hours=24)
+DISPUTE_PER_NETWORK_DAY = 20  # New disputes from one network (/24) per 24 h before 429.

@@ -124,7 +124,7 @@ def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
     if not written:
         return full
     clean = _evaluate(written)
-    if not _established(clean, C.KNOWN_MIN_SCORE):
+    if not established(clean, C.KNOWN_MIN_SCORE):
         return full
     explain = {**clean.explain, "blank_set_aside": len(reports) - len(written)}
     return replace(clean, group_of=full.group_of, explain=explain)
@@ -384,12 +384,12 @@ def decide(*, verified: bool, challenged: bool, report_count: int, result: Trust
     if challenged:
         return Verdict.SUSPICIOUS  # Under review: never KNOWN_SCAM, but still warn (bonus rule).
     # Real victims say what happened (brief: "in their own words"); blank clicks alone never confirm.
-    if _established(result, C.KNOWN_MIN_SCORE):
+    if established(result, C.KNOWN_MIN_SCORE):
         return Verdict.KNOWN_SCAM
     return Verdict.SUSPICIOUS
 
 
-def _established(result: TrustResult, min_score: float) -> bool:
+def established(result: TrustResult, min_score: float) -> bool:
     """3+ independent people, 2+ of whom described it or showed harm, enough weight, not a pile-on."""
     return (
         not result.pile_on
@@ -401,4 +401,4 @@ def _established(result: TrustResult, min_score: float) -> bool:
 
 def can_unmask(*, verified: bool, result: TrustResult) -> bool:
     """Privacy rule 2: show the full value only once at least 3 independent people stand behind it."""
-    return verified or _established(result, C.UNMASK_MIN_SCORE)
+    return verified or established(result, C.UNMASK_MIN_SCORE)

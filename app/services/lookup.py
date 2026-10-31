@@ -52,7 +52,9 @@ def _answer(id_type: IdentifierType, value: str) -> dict[str, Any]:
     with get_engine().connect() as conn:
         row = store.get_identifier(conn, id_type, value)
         evidence = (
-            store.recent_evidence(conn, row["id"], EVIDENCE_LIMIT) if row and row["report_count"] else []
+            store.recent_evidence(conn, row["id"], EVIDENCE_LIMIT, after=row["cleared_before"])
+            if row and row["report_count"]
+            else []
         )
 
     if row is None or row["report_count"] == 0:
@@ -66,6 +68,7 @@ def _answer(id_type: IdentifierType, value: str) -> dict[str, Any]:
             "display_value": value if verified else mask(id_type, value),
             "evidence": [],
             "challenged": bool(row and row["challenged"]),
+            "dispute": _dispute(row),
             "verified_owner": owner,
             "summary": summary(Verdict.VERIFIED_BUSINESS if verified else Verdict.NO_REPORTS, 0),
         }
@@ -87,11 +90,17 @@ def _answer(id_type: IdentifierType, value: str) -> dict[str, Any]:
             for e in evidence
         ],
         "challenged": row["challenged"],
+        "dispute": _dispute(row),
         # Extra fields are allowed by the brief; these explain the verdict without exposing anyone.
         "trust_score": row["trust_score"],
         "verified_owner": owner,
         "summary": summary(row["verdict"], row["distinct_reporters"]),
     }
+
+
+def _dispute(row: Any) -> dict[str, Any] | None:
+    """The dispute's state and deadline (extra field). Never who asked or why."""
+    return (row["explain"] or {}).get("dispute") if row is not None else None
 
 
 def summary(verdict: str, people: int) -> str:

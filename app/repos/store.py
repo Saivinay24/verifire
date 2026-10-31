@@ -1,7 +1,7 @@
 """Queries. Every function takes an open connection (the service owns the transaction) and does SQL only."""
 
 from collections.abc import Iterable, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import sqlalchemy as sa
@@ -32,6 +32,10 @@ def lock_identifier(conn: Connection, id_type: str, value_norm: str, verified: b
         .one()
     )
     return row
+
+
+def identifier_by_id(conn: Connection, identifier_id: int) -> RowMapping:
+    return conn.execute(sa.select(identifiers).where(identifiers.c.id == identifier_id)).mappings().one()
 
 
 def get_identifier(conn: Connection, id_type: str, value_norm: str) -> RowMapping | None:
@@ -129,11 +133,16 @@ def update_identifier(conn: Connection, identifier_id: int, values: dict[str, An
     )
 
 
-def recent_evidence(conn: Connection, identifier_id: int, limit: int) -> Sequence[RowMapping]:
+def recent_evidence(
+    conn: Connection, identifier_id: int, limit: int, after: datetime | None = None
+) -> Sequence[RowMapping]:
+    where = [reports.c.identifier_id == identifier_id]
+    if after is not None:  # Reports set aside by an upheld review are not evidence any more.
+        where.append(reports.c.received_at > after)
     return (
         conn.execute(
             sa.select(reports.c.occurred_at, reports.c.channel, reports.c.scam_type, reports.c.pincode)
-            .where(reports.c.identifier_id == identifier_id)
+            .where(*where)
             .order_by(reports.c.occurred_at.desc())
             .limit(limit)
         )
@@ -154,8 +163,110 @@ def open_challenge(conn: Connection, identifier_id: int) -> RowMapping | None:
     )
 
 
-def insert_challenge(conn: Connection, values: dict[str, Any]) -> None:
-    conn.execute(sa.insert(challenges).values(**values))
+def insert_challenge(conn: Connection, values: dict[str, Any], window: timedelta) -> None:
+    conn.execute(
+        sa.insert(challenges).values(**values, created_at=sa.func.now(), closes_at=sa.func.now() + window)
+    )
+
+
+def last_closed_challenge(conn: Connection, identifier_id: int) -> RowMapping | None:
+    return (
+        conn.execute(
+            sa.select(challenges)
+            .where(challenges.c.identifier_id == identifier_id, challenges.c.status != "under_review")
+            .order_by(challenges.c.decided_at.desc().nullslast())
+        )
+        .mappings()
+        .first()
+    )
+
+
+def get_challenge(conn: Connection, challenge_id: str) -> RowMapping | None:
+    return conn.execute(sa.select(challenges).where(challenges.c.id == challenge_id)).mappings().first()
+
+
+def close_challenge(conn: Connection, challenge_id: str, status: str) -> None:
+    conn.execute(
+        sa.update(challenges)
+        .where(challenges.c.id == challenge_id)
+        .values(status=status, decided_at=sa.func.now())
+    )
+
+
+def count_network_challenges(conn: Connection, ip_key: str, since: timedelta) -> int:
+    q = sa.select(sa.func.count()).where(
+        challenges.c.ip_key == ip_key, challenges.c.created_at > sa.func.now() - since
+    )
+    return int(conn.execute(q).scalar_one())
+
+
+def due_challenges(conn: Connection) -> list[int]:
+    """Identifiers whose open dispute has reached its deadline."""
+    rows = conn.execute(
+        sa.select(challenges.c.identifier_id).where(
+            challenges.c.status == "under_review", challenges.c.closes_at <= sa.func.now()
+        )
+    )
+    return [int(r.identifier_id) for r in rows]
+
+
+def db_now(conn: Connection) -> datetime:
+    return conn.execute(sa.select(sa.func.now())).scalar_one()
+
+
+def clear_reports_before(conn: Connection, identifier_id: int) -> None:
+    conn.execute(
+        sa.update(identifiers).where(identifiers.c.id == identifier_id).values(cleared_before=sa.func.now())
+    )
+
+
+def review_queue(conn: Connection, statuses: Sequence[str]) -> Sequence[RowMapping]:
+    """Disputes with their number's public state, for the reviewer only (never a public endpoint)."""
+    return (
+        conn.execute(
+            sa.select(
+                challenges,
+                identifiers.c.id_type,
+                identifiers.c.value_norm,
+                identifiers.c.verdict,
+                identifiers.c.report_count,
+                identifiers.c.distinct_reporters,
+                identifiers.c.top_scam_type,
+                identifiers.c.first_seen,
+                identifiers.c.last_seen,
+                identifiers.c.explain,
+            )
+            .join(identifiers, identifiers.c.id == challenges.c.identifier_id)
+            .where(challenges.c.status.in_(list(statuses)))
+            .order_by(challenges.c.created_at.desc())
+        )
+        .mappings()
+        .all()
+    )
+
+
+def claimant_counts(conn: Connection, column: str) -> dict[str, int]:
+    """How many different numbers each contact or network has disputed: the bulk-dispute signal."""
+    col = challenges.c[column]
+    rows = conn.execute(
+        sa.select(col, sa.func.count(sa.distinct(challenges.c.identifier_id)))
+        .where(col.is_not(None))
+        .group_by(col)
+    )
+    return {r[0]: int(r[1]) for r in rows}
+
+
+def report_money(conn: Connection, identifier_id: int, after: datetime | None) -> tuple[int, int, list[str]]:
+    """Money reported lost, reports with a loss, and areas, for the reviewer's evidence summary."""
+    where = [reports.c.identifier_id == identifier_id]
+    if after is not None:
+        where.append(reports.c.received_at > after)
+    rows = conn.execute(sa.select(reports.c.amount_lost_inr, reports.c.pincode).where(*where)).all()
+    return (
+        sum(int(r.amount_lost_inr or 0) for r in rows),
+        sum(1 for r in rows if r.amount_lost_inr),
+        sorted({r.pincode for r in rows}),
+    )
 
 
 def area_reports(
