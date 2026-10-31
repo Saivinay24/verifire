@@ -11,7 +11,8 @@ const T = {
     hello: "Check before you trust.",
     hello_sub: "Paste a number, UPI ID or link. See if people near you reported it.",
     report_cta: "Report a scam", near_cta: "Scams near me", dock_label: "Got a scam call or message?",
-    area_search: "Search by area name or pincode", area_none: (q) => `No area matches "${q}" yet. Try the pincode or a nearby area.`,
+    area_search: "Search by area name or pincode", type_search: "Search scam types", type_search_ph: "Try police, OTP, job, parcel",
+    type_none: "Nothing matches. Tap \"Not sure, skip\" below and describe it in your own words.", area_none: (q) => `No area matches "${q}" yet. Try the pincode or a nearby area.`,
     check_label: "Number, UPI ID or link", check_placeholder: "Paste a number, UPI ID or link",
     fineprint: "Anonymous. We save only the area, never who you are.",
     call1930: "Lost money? Call 1930", report_this: "Report this",
@@ -105,7 +106,8 @@ const T = {
     hello: "भरोसा करने से पहले जांचें।",
     hello_sub: "नंबर, UPI ID या लिंक डालें। देखें कि आपके पास किसी ने इसकी रिपोर्ट की है या नहीं।",
     report_cta: "स्कैम की रिपोर्ट करें", near_cta: "मेरे पास के स्कैम", dock_label: "स्कैम कॉल या मैसेज आया?",
-    area_search: "इलाके का नाम या पिनकोड खोजें", area_none: (q) => `"${q}" से कोई इलाका नहीं मिला। पिनकोड या पास का इलाका आज़माएं।`,
+    area_search: "इलाके का नाम या पिनकोड खोजें", type_search: "स्कैम का प्रकार खोजें", type_search_ph: "जैसे पुलिस, OTP, नौकरी, पार्सल",
+    type_none: "कुछ नहीं मिला। नीचे \"पता नहीं, आगे बढ़ें\" दबाएं और अपने शब्दों में बताएं।", area_none: (q) => `"${q}" से कोई इलाका नहीं मिला। पिनकोड या पास का इलाका आज़माएं।`,
     check_label: "नंबर, UPI ID या लिंक", check_placeholder: "नंबर, UPI ID या लिंक डालें",
     fineprint: "गुमनाम। हम सिर्फ इलाका रखते हैं, आपकी पहचान कभी नहीं।",
     call1930: "पैसे गए? 1930 पर कॉल करें", report_this: "इसकी रिपोर्ट करें",
@@ -246,6 +248,22 @@ const TYPES = [
     advice: { en: "When in doubt, don't pay and don't share codes. Call 1930 if money was taken.",
               hi: "शक हो तो पैसे न दें, कोड न बताएं। पैसे गए हों तो 1930 पर कॉल करें।" } },
 ];
+
+// Extra words people use for each scam, so the search finds a tile by what happened, not only its label.
+const TYPE_WORDS = {
+  "digital-arrest": "cbi ed customs officer arrest warrant court case video call narcotics drugs aadhaar misuse sim block trai पुलिस गिरफ्तारी सीबीआई",
+  "fake-kyc-link": "kyc bank account blocked pan aadhaar update link sms suspended केवाईसी बैंक खाता",
+  "upi-refund-qr": "qr scan refund pin upi gpay phonepe paytm receive money olx क्यूआर रिफंड",
+  "investment-group": "stock trading crypto share market ipo telegram whatsapp group returns profit निवेश शेयर ट्रेडिंग",
+  "courier-customs": "parcel courier fedex dhl customs package drugs delivery पार्सल कूरियर",
+  "job-offer": "job task part time work from home youtube like review rating deposit telegram नौकरी काम",
+  "lottery-prize": "lottery prize gift winner kbc lucky draw reward इनाम लॉटरी",
+  "loan-app-harassment": "loan app instant loan threat morphed photos contacts recovery लोन धमकी",
+  "electricity-disconnection": "electricity bill power cut light bescom meter बिजली बिल",
+  "fake-customer-care": "customer care helpline refund support google search swiggy amazon flipkart bank कस्टमर केयर हेल्पलाइन",
+  "otp-call": "otp code pin password cvv card bank verification ओटीपी कोड",
+  "sextortion": "video call nude blackmail girl record leak ब्लैकमेल वीडियो",
+};
 
 const WHEN = [
   { key: "when_now", minutes: 0 }, { key: "when_today", minutes: 180 },
@@ -502,6 +520,25 @@ function renderTiles() {
   };
   build($("#channelTiles"), CHANNELS, "channel");
   build($("#typeTiles"), TYPES.filter((x) => x.id !== "other"), "type");
+  filterTypes();
+}
+// Every word typed must appear in the tile's label (either language) or its extra words.
+function filterTypes() {
+  const words = $("#typeSearch").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = TYPES.filter((x) => x.id !== "other");
+  let n = 0;
+  $("#typeTiles").querySelectorAll(".tile").forEach((b, i) => {
+    const it = shown[i], hay = `${it.en} ${it.hi} ${TYPE_WORDS[it.id] || ""}`.toLowerCase();
+    const ok = words.every((w) => hay.includes(w)); b.hidden = !ok; n += ok;
+  });
+  $("#typeNone").hidden = n > 0;
+}
+function setTypeSearch(open) {
+  $("#typeSearchBox").hidden = !open; $("#typeSearchBtn").hidden = open;
+  $("#typeSearchBtn").setAttribute("aria-expanded", String(open));
+  if (!open) $("#typeSearch").value = "";
+  filterTypes();
+  if (open) $("#typeSearch").focus();
 }
 function renderWhen() {
   const seg = $("#whenSeg"); seg.replaceChildren();
@@ -513,7 +550,7 @@ function renderWhen() {
   });
 }
 function go(n) {
-  step = n;
+  step = n; $("#reportFlow").dataset.step = n;
   document.querySelectorAll("#reportFlow .step").forEach((s) => s.classList.toggle("active", Number(s.dataset.step) === n));
   document.querySelectorAll("#reportFlow .steps i").forEach((d, i) => d.classList.toggle("on", i < Math.min(n, 3)));
   $(".steps").hidden = n === 4; $("#flowBack").style.visibility = n === 1 || n === 4 ? "hidden" : "visible";
@@ -527,12 +564,19 @@ function openFlow(prefill) {
   Object.assign(draft, { channel: null, type: null, when: 0 });
   $("#reportForm").reset(); $("#valueError").hidden = true;
   $("#reportValue").value = prefill; updateKind($("#reportValue"), $("#reportKind"));
+  $("#typeSearch").value = ""; setTypeSearch(false);
   renderTiles(); renderWhen(); renderArea(); stopListening(); setNoteOpen(false);
   $("#reportFlow").hidden = false; go(1);
 }
 function closeFlow() { stopListening(); $("#reportFlow").hidden = true; }
 $("#openReport").addEventListener("click", () => openFlow(detectKind($("#checkInput").value) ? $("#checkInput").value.trim() : ""));
 $("#flowClose").addEventListener("click", closeFlow);
+$("#typeSearchBtn").addEventListener("click", () => setTypeSearch(true));
+$("#typeSearch").addEventListener("input", filterTypes);
+$("#typeSearch").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { e.stopPropagation(); setTypeSearch(false); }
+  if (e.key === "Enter") { e.preventDefault(); const vis = [...$("#typeTiles").querySelectorAll(".tile:not([hidden])")]; if (vis.length === 1) vis[0].click(); }
+});
 $("#skipType").addEventListener("click", () => { draft.type = "other"; go(3); });
 $("#flowBack").addEventListener("click", () => go(Math.max(1, step - 1)));
 $("#doneBtn").addEventListener("click", closeFlow);

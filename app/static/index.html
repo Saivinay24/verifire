@@ -115,6 +115,16 @@
       <div class="tiles tiles-3" id="channelTiles"></div>
     </div>
     <div class="step" data-step="2">
+      <button class="icon-btn glass tile-search-btn" id="typeSearchBtn" type="button" aria-controls="typeSearchBox" aria-expanded="false">
+        <svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr-only" data-t="type_search">Search scam types</span>
+      </button>
+      <div class="field glass search-field" id="typeSearchBox" hidden>
+        <svg aria-hidden="true"><use href="#i-search"/></svg>
+        <label class="sr-only" for="typeSearch" data-t="type_search">Search scam types</label>
+        <input id="typeSearch" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false"
+               data-tp="type_search_ph" placeholder="Try police, OTP, job, parcel">
+      </div>
+      <p class="empty-sm type-none" id="typeNone" hidden data-t="type_none">Nothing matches. Tap "Not sure, skip" below and describe it in your own words.</p>
       <div class="tiles tiles-3" id="typeTiles"></div>
       <button class="skip" id="skipType" type="button" data-t="not_sure">Not sure, skip</button>
     </div>

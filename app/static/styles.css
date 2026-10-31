@@ -226,6 +226,13 @@ html[lang="en"] .lang [data-lang="en"], html[lang="hi"] .lang [data-lang="hi"] {
   font-size: 13.5px; font-weight: 500; line-height: 1.2; text-align: center;
   transition: transform .15s var(--ease), background .2s, border-color .2s;
 }
+#reportFlow[data-step="2"] .step-title { padding-right: 48px; }
+.step[data-step="2"] { position: relative; padding-top: 12px; }
+.tile-search-btn { position: absolute; right: 0; top: -39px; width: 38px; height: 38px; }
+.tile-search-btn svg { width: 19px; height: 19px; }
+#typeSearchBox { margin: 2px 0 12px; }
+.type-none { margin: 4px 4px 12px; }
+.tile[hidden] { display: none !important; }
 .skip { display: block; margin: 16px auto 0; color: var(--ink-2); font-weight: 500; padding: 10px 14px; }
 .tile .tile-icon {
   width: 46px; height: 46px; border-radius: calc(var(--r-card) - 4px); display: grid; place-items: center;
