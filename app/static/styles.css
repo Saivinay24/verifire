@@ -90,7 +90,7 @@ svg:not(.leaflet-zoom-animated):not(.leaflet-attribution-flag):not(.chart) { wid
 .lang span { padding: 5px 11px; border-radius: var(--r-pill); color: var(--ink-3); transition: background .2s, color .2s; }
 html[lang="en"] .lang [data-lang="en"], html[lang="hi"] .lang [data-lang="hi"] { background: var(--ink); color: #fff; }
 
-.greeting { margin-top: 18vh; }
+.greeting { margin-top: 13vh; margin-bottom: 22px; }
 .greeting h1 {
   margin: 0; font-size: clamp(34px, 9.5vw, 46px); line-height: 1.05; font-weight: 700; letter-spacing: -0.035em;
   max-width: 11ch;
@@ -98,7 +98,7 @@ html[lang="en"] .lang [data-lang="en"], html[lang="hi"] .lang [data-lang="hi"] {
 .greeting p { margin: 14px 0 0; color: var(--ink-2); font-size: 17px; max-width: 30ch; }
 
 .alert-banner {
-  margin-top: 28px; display: flex; align-items: center; gap: 12px; text-align: left;
+  margin-top: 22px; display: flex; align-items: center; gap: 12px; text-align: left;
   padding: 14px 14px 14px 16px; border-radius: var(--r-card); width: 100%;
 }
 .alert-text { flex: 1; font-size: 15px; font-weight: 500; }
@@ -108,7 +108,9 @@ html[lang="en"] .lang [data-lang="en"], html[lang="hi"] .lang [data-lang="hi"] {
 @keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(212, 66, 58, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 66, 58, 0); } }
 
 .dock { margin-top: auto; padding: 24px 0 calc(var(--safe-b) + 14px); position: sticky; bottom: 0; }
-.actions { display: flex; gap: 10px; margin-bottom: 12px; }
+.dock-label { margin: 0 4px 10px; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.actions { display: flex; gap: 10px; }
+.actions .action { flex: 1; justify-content: center; height: 52px; padding: 0 14px; }
 .action {
   display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 18px;
   border-radius: var(--r-pill); font-weight: 600; font-size: 15px; transition: transform .15s var(--ease);
@@ -142,7 +144,7 @@ html[lang="en"] .lang [data-lang="en"], html[lang="hi"] .lang [data-lang="hi"] {
   flex: none; font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: var(--r-pill);
   background: rgba(47, 91, 234, 0.1); color: var(--accent); margin-right: 4px;
 }
-.fineprint { margin: 10px 4px 0; font-size: 12.5px; color: var(--ink-3); text-align: center; }
+.fineprint { margin: 10px 4px 0; font-size: 12.5px; color: var(--ink-3); }
 
 /* ---------- Sheets ---------- */
 .scrim { position: fixed; inset: 0; z-index: 30; background: rgba(20, 34, 51, 0.18);
@@ -418,7 +420,7 @@ button.row:active { transform: scale(0.98); }
          padding: 12px 18px; border-radius: var(--r-pill); font-weight: 500; font-size: 15px; animation: fade .2s; max-width: 90vw; }
 
 @media (min-width: 720px) {
-  .greeting { margin-top: 22vh; }
+  .greeting { margin-top: 16vh; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

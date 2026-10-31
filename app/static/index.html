@@ -38,6 +38,20 @@
       <p data-t="hello_sub">Paste a number, UPI ID or link. See if people near you reported it.</p>
     </section>
 
+    <form class="composer glass" id="checkForm" autocomplete="off">
+      <span class="kind-chip" id="kindChip" hidden></span>
+      <label class="sr-only" for="checkInput" data-t="check_label">Number, UPI ID or link</label>
+      <input id="checkInput" inputmode="text" enterkeyhint="search" spellcheck="false"
+             data-tp="check_placeholder" placeholder="Paste a number, UPI ID or link">
+      <button class="icon-btn" id="pasteBtn" type="button" aria-label="Paste">
+        <svg aria-hidden="true"><use href="#i-paste"/></svg>
+      </button>
+      <button class="send" id="checkBtn" type="submit" aria-label="Check">
+        <svg aria-hidden="true"><use href="#i-arrow-up"/></svg>
+      </button>
+    </form>
+    <p class="fineprint" data-t="fineprint">Anonymous. We save only the area, never who you are.</p>
+
     <button class="alert-banner glass" id="alertBanner" type="button" hidden>
       <span class="pulse" aria-hidden="true"></span>
       <span class="alert-text" id="alertText"></span>
@@ -45,6 +59,7 @@
     </button>
 
     <div class="dock">
+      <p class="dock-label" data-t="dock_label">Got a scam call or message?</p>
       <div class="actions">
         <button class="action action-report" id="openReport" type="button">
           <svg aria-hidden="true"><use href="#i-flag"/></svg>
@@ -52,23 +67,9 @@
         </button>
         <button class="action action-near glass" id="openMap" type="button">
           <svg aria-hidden="true"><use href="#i-pin"/></svg>
-          <span data-t="near_cta">Near me</span>
+          <span data-t="near_cta">Scams near me</span>
         </button>
       </div>
-
-      <form class="composer glass" id="checkForm" autocomplete="off">
-        <span class="kind-chip" id="kindChip" hidden></span>
-        <label class="sr-only" for="checkInput" data-t="check_label">Number, UPI ID or link</label>
-        <input id="checkInput" inputmode="text" enterkeyhint="search" spellcheck="false"
-               data-tp="check_placeholder" placeholder="Paste a number, UPI ID or link">
-        <button class="icon-btn" id="pasteBtn" type="button" aria-label="Paste">
-          <svg aria-hidden="true"><use href="#i-paste"/></svg>
-        </button>
-        <button class="send" id="checkBtn" type="submit" aria-label="Check">
-          <svg aria-hidden="true"><use href="#i-arrow-up"/></svg>
-        </button>
-      </form>
-      <p class="fineprint" data-t="fineprint">Anonymous. We save only the area, never who you are.</p>
     </div>
   </main>
 
