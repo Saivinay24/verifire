@@ -1,4 +1,4 @@
-/* Scam Map: light, tinted-glass mobile UI.
+/* VeriFire: light, tinted-glass mobile UI.
    Radii are concentric: an inner surface's radius = outer radius - the inset between them,
    so every corner runs parallel to the one around it. */
 

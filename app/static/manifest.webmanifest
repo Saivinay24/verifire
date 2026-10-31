@@ -1,6 +1,6 @@
 {
-  "name": "Scam Map",
-  "short_name": "Scam Map",
+  "name": "VeriFire",
+  "short_name": "VeriFire",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F3F6FA",

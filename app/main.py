@@ -23,7 +23,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
 
-    app = FastAPI(title="Community Scam Map", version="0.1.0")
+    app = FastAPI(title="VeriFire", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings.allowed_origin],
