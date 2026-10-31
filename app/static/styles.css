@@ -49,7 +49,7 @@ body {
 }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; padding: 0; }
-svg:not(.leaflet-zoom-animated):not(.leaflet-attribution-flag):not(.chart):not(.burst):not(.logo) { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8;
+svg:not(.leaflet-zoom-animated):not(.leaflet-attribution-flag):not(.chart):not(.burst) { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8;
       stroke-linecap: round; stroke-linejoin: round; flex: none; }
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -83,7 +83,7 @@ svg:not(.leaflet-zoom-animated):not(.leaflet-attribution-flag):not(.chart):not(.
 .menu-btn { width: 40px; height: 40px; margin-left: -8px; color: var(--ink); }
 .topbar > .menu-btn + .brand { margin-right: auto; margin-left: 2px; }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: -0.01em; }
-.brand-mark { width: 28px; height: 24px; flex: none; }
+.brand-mark { width: 23px; height: 24px; flex: none; object-fit: contain; }
 .wordmark { font-weight: 700; letter-spacing: -0.02em; color: #1F1F1F; }
 .wordmark b { font-weight: 700; color: #E8581F; }
 .top-actions { display: flex; align-items: center; gap: 8px; }
