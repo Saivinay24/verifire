@@ -41,10 +41,29 @@ _LEXICON = re.compile(
 )
 
 
+# Plain words for "this was a scam", for notes that say so without naming the method ("fraud call").
+_SCAM_WORDS = re.compile(
+    r"scam|fraud|fake|cheat|dhokha|dhoka|thag|nakli|farzi|ठग|धोखा|फर्जी|नकली|स्कैम|फ्रॉड",
+    re.IGNORECASE,
+)
+
+# Words about a shop, its goods or its service: a review, not a scam report. Generic consumer
+# vocabulary, so a pile-on of reviews (the brief's "40 friends reporting a real bakery") shows up.
+_REVIEW = re.compile(
+    r"shop|store|bakery|restaurant|hotel|dukaan|dukan|cake|bread|pastr|sweet|mithai|food|taste|stale|"
+    r"expired|hygien|dirty|cockroach|rude|arrogant|misbehav|staff|owner|shopkeeper|overpriced|"
+    r"quality|star|kharab|basi|bekar|dont buy|don't buy|never order|"
+    r"दुकान|मिठाई|बासी|खराब|घटिया",
+    re.IGNORECASE,
+)
+
+
 class NoteFeatures(NamedTuple):
     length: int
     signature: list[int]  # empty when the note is too short to fingerprint
     mentions_method: bool
+    names_scam: bool = False  # names a scam method or calls it a scam in plain words
+    is_review: bool = False  # complains about a shop or product and names no scam method
 
 
 def _canonical(note: str) -> str:
@@ -56,14 +75,17 @@ def _canonical(note: str) -> str:
 
 def extract(note: str | None) -> NoteFeatures:
     text = _canonical(note or "")
+    method = bool(text) and bool(_LEXICON.search(text))
+    names_scam = method or bool(_SCAM_WORDS.search(text))
+    review = not method and bool(_REVIEW.search(text))
     if len(text) < _SHINGLE:
-        return NoteFeatures(len(text), [], bool(text) and bool(_LEXICON.search(text)))
+        return NoteFeatures(len(text), [], method, names_scam, review)
     shingles = {
         int.from_bytes(hashlib.blake2b(text[i : i + _SHINGLE].encode(), digest_size=8).digest(), "big")
         for i in range(len(text) - _SHINGLE + 1)
     }
     signature = [min((a * x + b) % _PRIME for x in shingles) & _MAX_HASH for a, b in _PERMS]
-    return NoteFeatures(len(text), signature, bool(_LEXICON.search(text)))
+    return NoteFeatures(len(text), signature, method, names_scam, review)
 
 
 def similarity(a: list[int], b: list[int]) -> float:

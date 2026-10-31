@@ -45,6 +45,8 @@ class ReportFacts:
     note_len: int
     note_sig: Sequence[int]
     note_lex: bool
+    note_scam: bool
+    note_review: bool
     has_screenshot: bool
     amount_lost_inr: int
     reporter_hourly: int = 1  # Max reports this reporter sent in any hour, across all identifiers.
@@ -57,6 +59,7 @@ class TrustResult:
     described_groups: int = 0  # groups where someone said what happened (note, screenshot or loss)
     score: float = 0.0
     campaign_factor: float = 1.0
+    pile_on: list[str] = field(default_factory=list)  # why this looks like a pile-on, if it does
     group_of: dict[str, str] = field(default_factory=dict)
     alert_ids: set[str] = field(default_factory=set)
     explain: dict[str, object] = field(default_factory=dict)
@@ -277,23 +280,43 @@ def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
         )
         factors["style"] = C.STYLE_FACTOR if uniform else 1.0
 
+    # Step 5: pile-on gate. Volume cannot buy a verdict: if the people behind an identifier mostly
+    # wrote nothing, wrote no scam at all, or cannot agree what the scam was, it is never confirmed.
+    pile_on: list[str] = []
+    if len(units) >= C.PILE_ON_MIN_UNITS:
+        n_units = len(units)
+        noted = [it for it in units.values() if any(r.note_len >= C.NOTE_SHORT_CHARS for r in it)]
+        if 1 - len(noted) / n_units >= C.PILE_ON_BLANK_SHARE:
+            pile_on.append("mostly_blank")
+        if len(noted) >= C.PILE_ON_MIN_NOTES:
+            if sum(any(r.note_scam for r in it) for it in noted) / len(noted) < C.PILE_ON_SCAM_SHARE:
+                pile_on.append("no_scam_described")
+            if sum(any(r.note_review for r in it) for it in noted) / len(noted) >= C.PILE_ON_REVIEW_SHARE:
+                pile_on.append("reviews_not_scams")
+        unit_types = Counter(Counter(r.scam_type for r in it).most_common(1)[0][0] for it in units.values())
+        if unit_types.most_common(1)[0][1] / n_units < C.PILE_ON_TYPE_SHARE:
+            pile_on.append("no_agreement_on_type")
+
     campaign = min(C.CAMPAIGN_CEIL, max(C.CAMPAIGN_FLOOR, math.prod(factors.values()) if factors else 1.0))
     score = weight_sum * campaign
 
     alert_ids: set[str] = set()
-    if campaign >= C.ALERT_MIN_CAMPAIGN:
+    if campaign >= C.ALERT_MIN_CAMPAIGN and not pile_on:
         first_in_group: dict[str, ReportFacts] = {}
+        group_size: Counter[str] = Counter(group_of.values())
         for r in rs:
             g = group_of[r.id]
             if g not in first_in_group or r.occurred_at < first_in_group[g].occurred_at:
                 first_in_group[g] = r
-        alert_ids = {r.id for r in first_in_group.values()}
+        # A group that filed many reports on one identifier (spammer, fake accounts) is never news.
+        alert_ids = {r.id for g, r in first_in_group.items() if group_size[g] <= C.ALERT_MAX_GROUP_REPORTS}
 
     return TrustResult(
         groups=n_groups,
         described_groups=described,
         score=round(score, 3),
         campaign_factor=round(campaign, 3),
+        pile_on=pile_on,
         group_of=group_of,
         alert_ids=alert_ids,
         explain={
@@ -306,6 +329,7 @@ def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
             "weight_after_caps": round(weight_sum, 3),
             "campaign_factors": {k: round(v, 3) for k, v in factors.items()},
             "campaign_factor": round(campaign, 3),
+            "pile_on": pile_on,
             "score": round(score, 3),
         },
     )
@@ -319,11 +343,21 @@ def decide(*, verified: bool, challenged: bool, report_count: int, result: Trust
     if challenged:
         return Verdict.SUSPICIOUS  # Under review: never KNOWN_SCAM, but still warn (bonus rule).
     # Real victims say what happened (brief: "in their own words"); blank clicks alone never confirm.
-    if result.described_groups >= C.KNOWN_MIN_GROUPS and result.score >= C.KNOWN_MIN_SCORE:
+    if _established(result, C.KNOWN_MIN_SCORE):
         return Verdict.KNOWN_SCAM
     return Verdict.SUSPICIOUS
 
 
+def _established(result: TrustResult, min_score: float) -> bool:
+    """3+ independent people, 2+ of whom described it or showed harm, enough weight, not a pile-on."""
+    return (
+        not result.pile_on
+        and result.groups >= C.KNOWN_MIN_GROUPS
+        and result.described_groups >= C.KNOWN_MIN_DESCRIBED
+        and result.score >= min_score
+    )
+
+
 def can_unmask(*, verified: bool, result: TrustResult) -> bool:
     """Privacy rule 2: show the full value only once at least 3 independent people stand behind it."""
-    return verified or (result.described_groups >= C.KNOWN_MIN_GROUPS and result.score >= C.UNMASK_MIN_SCORE)
+    return verified or _established(result, C.UNMASK_MIN_SCORE)

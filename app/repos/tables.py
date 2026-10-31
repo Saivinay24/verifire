@@ -53,6 +53,8 @@ reports = sa.Table(
     sa.Column("note_len", sa.Integer),
     sa.Column("note_sig", pg.ARRAY(sa.BigInteger)),
     sa.Column("note_lex", sa.Boolean),
+    sa.Column("note_scam", sa.Boolean),
+    sa.Column("note_review", sa.Boolean),
     sa.Column("has_screenshot", sa.Boolean),
     sa.Column("amount_lost_inr", sa.BigInteger),
     sa.Column("group_key", sa.Text),

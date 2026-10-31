@@ -8,8 +8,11 @@ from datetime import timedelta
 
 # --- Verdict -------------------------------------------------------------------------------
 KNOWN_MIN_GROUPS = 3  # Same "3 different people" bar the brief uses for unmasking.
-KNOWN_MIN_SCORE = 2.5  # Effective people after checks. 5 plain victims (short notes, no proof) clear it.
-UNMASK_MIN_SCORE = 2.5  # Unmask only when the weighted evidence agrees with the 3-people bar.
+KNOWN_MIN_DESCRIBED = 2  # ...and at least 2 of them said what happened or showed proof of harm.
+# Smallest real case clears it: one full description (~1.1), one blank note with proof of harm
+# (0.575) and one blank click (0.5). Three blank clicks (1.5) never do.
+KNOWN_MIN_SCORE = 2.1
+UNMASK_MIN_SCORE = 2.1  # Unmask only when the weighted evidence agrees with the 3-people bar.
 
 # --- Step 1: grouping edges ----------------------------------------------------------------
 NOTE_DUP_SIMILARITY = 0.7  # MinHash Jaccard of 4-grams; copy-paste with small edits scores > 0.8.
@@ -74,6 +77,15 @@ BLANK_MAX_SHARE = 0.5  # Most reporters wrote nothing: real victims describe wha
 BLANK_FACTOR = 0.4
 
 # --- Alerts --------------------------------------------------------------------------------
+# Pile-on gate. A real campaign's victims describe it and agree on what it was; a pile-on (the
+# brief's "40 friends reporting a real bakery") does not. Only judged with enough people to tell.
+PILE_ON_MIN_UNITS = 8
+PILE_ON_BLANK_SHARE = 0.6  # Real victims leave ~25% of notes blank; most of a pile-on writes nothing.
+PILE_ON_MIN_NOTES = 6
+PILE_ON_SCAM_SHARE = 0.15  # Real notes name the scam ~65%+ of the time (measured); pure reviews ~0%.
+PILE_ON_REVIEW_SHARE = 0.3  # Real victims almost never write a shop review; a pile-on of friends does.
+PILE_ON_TYPE_SHARE = 0.5  # Victims of one identifier mostly pick the same scam type (~85%).
+ALERT_MAX_GROUP_REPORTS = 3  # A group that filed more than this about one identifier is spam: no alerts.
 ALERT_MIN_CAMPAIGN = 0.5  # Reports on identifiers damped below this never feed alerts.
 SPIKE_MIN_COUNT = 5
 SPIKE_RATIO = 2.0

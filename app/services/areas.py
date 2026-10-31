@@ -34,17 +34,24 @@ def scam_map(pincode: str, days: float, radius_km: float, now: datetime) -> dict
     centre = _area(pincode)
     nearby = [a for a in AREAS if haversine_km(centre, a) <= radius_km]
     with get_engine().connect() as conn:
-        rows = store.trusted_area_reports(conn, [a.pincode for a in nearby], now - timedelta(days=days))
-    by_area: dict[str, Counter[str]] = defaultdict(Counter)
+        rows = store.area_reports(
+            conn, [a.pincode for a in nearby], now - timedelta(days=days), trusted_only=False
+        )
+    # Every area with reports is on the map (A.4). The count is people, not rows: one reporter counts
+    # once and one connection adds at most ~1.25 people, so spam and fake accounts cannot inflate it.
+    by_area: dict[str, list[A.TrustedReport]] = defaultdict(list)
     for r in rows:
         if r["occurred_at"] <= now:
-            by_area[r["pincode"]][r["scam_type"]] += 1
+            by_area[r["pincode"]].append(
+                A.TrustedReport(r["occurred_at"], r["scam_type"], r["reporter_key"], r["ip_key"])
+            )
     clusters = []
     for area in sorted(nearby, key=lambda a: haversine_km(centre, a)):
-        types = by_area.get(area.pincode)
-        if not types:
+        items = by_area.get(area.pincode)
+        if not items:
             continue
-        count = sum(types.values())
+        count = max(1, round(A.effective_count(items)))
+        types = Counter(r.scam_type for r in items)
         clusters.append(
             {
                 "pincode": area.pincode,
@@ -63,7 +70,7 @@ def scam_map(pincode: str, days: float, radius_km: float, now: datetime) -> dict
 def area_alerts(pincode: str, now: datetime) -> dict[str, Any]:
     area = _area(pincode)
     with get_engine().connect() as conn:
-        rows = store.trusted_area_reports(conn, [area.pincode], now - timedelta(days=8))
+        rows = store.area_reports(conn, [area.pincode], now - timedelta(days=8), trusted_only=True)
         seen_before = store.area_scam_types_between(
             conn, area.pincode, now - timedelta(days=31), now - timedelta(hours=24)
         )

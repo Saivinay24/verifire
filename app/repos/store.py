@@ -158,24 +158,21 @@ def insert_challenge(conn: Connection, values: dict[str, Any]) -> None:
     conn.execute(sa.insert(challenges).values(**values))
 
 
-def trusted_area_reports(conn: Connection, pincodes: Sequence[str], since: datetime) -> Sequence[RowMapping]:
-    return (
-        conn.execute(
-            sa.select(
-                reports.c.pincode,
-                reports.c.occurred_at,
-                reports.c.scam_type,
-                reports.c.reporter_key,
-                reports.c.ip_key,
-            ).where(
-                reports.c.pincode.in_(list(pincodes)),
-                reports.c.alert_weight > 0,
-                reports.c.occurred_at >= since,
-            )
-        )
-        .mappings()
-        .all()
+def area_reports(
+    conn: Connection, pincodes: Sequence[str], since: datetime, *, trusted_only: bool
+) -> Sequence[RowMapping]:
+    """Reports in some areas since a time. Alerts read only the ones trust rules counted."""
+    where = [reports.c.pincode.in_(list(pincodes)), reports.c.occurred_at >= since]
+    if trusted_only:
+        where.append(reports.c.alert_weight > 0)
+    cols = (
+        reports.c.pincode,
+        reports.c.occurred_at,
+        reports.c.scam_type,
+        reports.c.reporter_key,
+        reports.c.ip_key,
     )
+    return conn.execute(sa.select(*cols).where(*where)).mappings().all()
 
 
 def area_scam_types_between(conn: Connection, pincode: str, since: datetime, until: datetime) -> set[str]:
