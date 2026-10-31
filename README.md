@@ -113,7 +113,7 @@ The seven addresses from Appendix A have no login, as the brief asks.
 | `GET /health` | `{"ok": true}`. Always works, even when the licence has expired |
 | `POST /reports` | Saves a report. 201, 400 for bad input, 429 when someone reports too fast |
 | `GET /lookup?type=&value=` | The verdict for a number, UPI id, link or SMS sender |
-| `GET /lookup/reports?type=&value=` | Every report filed on one number, newest first: when (to the hour), how, scam type, area, and yes/no proof badges (screenshot, lost money, described it). Same masking as the lookup. Never who reported, what they wrote or how much. Extra, not in Appendix A |
+| `GET /lookup/reports?type=&value=` | Every report filed on one number, newest first: when, how, scam type, area, and yes/no proof badges (screenshot, lost money, described it). Same masking as the lookup. Never who reported, what they wrote or how much. Extra, not in Appendix A |
 | `GET /map?pincode=&days=&radius_km=` | Scam clusters near an area (defaults: 7 days, 2 km) |
 | `GET /alerts?pincode=` | `SPIKE` and `NEW_TYPE` alerts for an area |
 | `GET /city?pincode=&days=` | The app's city sheet: hot areas, trending types, known scam numbers, recent feed (default 7 days). Extra, not in Appendix A |
@@ -201,7 +201,7 @@ Full detail:
 - **No exact location.** The map shows only the official point for each area (Appendix B). On the phone, "near me" picks the nearest area on the phone itself and sends only the area code.
 - **Masking.** A number reported by fewer than 3 different people is shown masked, like `98XXXXX222`.
 - **Evidence** in a lookup shows only the time, channel, scam type and area. It never shows who reported, their IP, or their note.
-- **"See all reports filed"** lists every report on a number with the same fields, plus three yes/no proof badges. Times are rounded to the hour, the number stays masked under 3 people, and verified numbers list nothing. What people wrote cannot be shown because it is never stored.
+- **"See all reports filed"** lists every report on a number with the same fields, plus three yes/no proof badges. The number stays masked under 3 people, and verified numbers list nothing. What people wrote cannot be shown because it is never stored.
 - **The city sheet and stats** follow the same rules. A number shows in full only where the lookup would show it in full. Feed times are rounded to the hour, and every point is an official area point.
 - **Speech and complaints stay on the phone.** Speech is turned into text by the browser's own speech service, and no audio reaches our server. The complaint is built on the phone and goes only where the person sends it.
 - **Logs** keep only an allowed list of fields. They hold no reporter, IP, note or reported number.

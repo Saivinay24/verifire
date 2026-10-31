@@ -31,7 +31,8 @@ def test_lists_every_report_with_proof_badges_and_nothing_private(client: TestCl
     assert all(set(x) == ROW_KEYS for x in body["reports"])
     times = [x["occurred_at"] for x in body["reports"]]
     assert times == sorted(times, reverse=True)  # newest first
-    assert all(x["occurred_at"][14:19] == "00:00" for x in body["reports"])  # rounded to the hour
+    look = client.get("/lookup", params={"type": "phone", "value": "9845012121"}).json()
+    assert times[0] == look["evidence"][0]["occurred_at"]  # exact time, same as lookup's evidence
     assert all(x["locality"] == "HSR Layout" and x["city"] == "Bengaluru" for x in body["reports"])
     assert sum(x["lost_money"] for x in body["reports"]) == 1
     assert any(x["screenshot"] for x in body["reports"]) and any(not x["screenshot"] for x in body["reports"])

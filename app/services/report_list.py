@@ -2,7 +2,7 @@
 
 Shows only what lookup's evidence already shows (when, how, what, which area), plus three yes/no
 proof badges. Never who reported, their IP, what they wrote, or how much they lost. Notes are not
-stored, so they cannot be shown. Times are rounded to the hour, like the city feed.
+stored, so they cannot be shown. Times are exact, as in lookup's own evidence list.
 """
 
 from typing import Any
@@ -11,7 +11,7 @@ from app.db import get_engine
 from app.domain.areas import AREAS_BY_PINCODE
 from app.domain.constants import NOTE_SHORT_CHARS
 from app.domain.identifiers import normalise, parse_type
-from app.domain.timefmt import IST, fmt
+from app.domain.timefmt import fmt
 from app.domain.trust import Verdict
 from app.repos import store
 from app.services import lookup
@@ -41,9 +41,7 @@ def reports_filed(raw_type: str, raw_value: str) -> dict[str, Any]:
         area = AREAS_BY_PINCODE.get(r["pincode"])
         items.append(
             {
-                "occurred_at": fmt(
-                    r["occurred_at"].astimezone(IST).replace(minute=0, second=0, microsecond=0)
-                ),
+                "occurred_at": fmt(r["occurred_at"]),
                 "channel": r["channel"],
                 "scam_type": r["scam_type"],
                 "pincode": r["pincode"],

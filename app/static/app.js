@@ -87,7 +87,7 @@ const T = {
     spike: (a, n) => `Scam reports near ${a} jumped today: ${n} in 24 hours.`,
     newtype: (a, t) => `New scam near ${a}: ${t}.`,
     reports_n: (n) => `${n} ${n === 1 ? "report" : "reports"}`,
-    ago_min: (n) => `${n} min ago`, ago_h: (n) => `${n} h ago`, ago_d: (n) => `${n} d ago`,
+    this_hour: "In the last hour", ago_min: (n) => `${n} min ago`, ago_h: (n) => `${n} h ago`, ago_d: (n) => `${n} d ago`,
     say_it: "Say it", listening: "Listening. Tap to stop", mic_hint: "Listening. Say one sentence in English or Hindi, then tap Say it again to add more. Don't say your name or number.",
     mic_denied: "Microphone is blocked. Allow it for this site in your browser settings, or use your keyboard's mic key.",
     mic_none: "No microphone found. Check your phone or computer allows the browser to use it.",
@@ -226,7 +226,7 @@ const T = {
     spike: (a, n) => `${a} के पास आज स्कैम रिपोर्ट अचानक बढ़ीं: 24 घंटे में ${n}।`,
     newtype: (a, t) => `${a} के पास नया स्कैम: ${t}।`,
     reports_n: (n) => `${n} रिपोर्ट`,
-    ago_min: (n) => `${n} मिनट पहले`, ago_h: (n) => `${n} घंटे पहले`, ago_d: (n) => `${n} दिन पहले`,
+    this_hour: "पिछले एक घंटे में", ago_min: (n) => `${n} मिनट पहले`, ago_h: (n) => `${n} घंटे पहले`, ago_d: (n) => `${n} दिन पहले`,
     say_it: "बोलकर बताएं", listening: "सुन रहे हैं। रोकने के लिए दबाएं", mic_hint: "सुन रहे हैं। हिंदी या अंग्रेज़ी में एक वाक्य बोलें, और जोड़ने के लिए फिर से दबाएं। अपना नाम या नंबर न बोलें।",
     mic_denied: "माइक्रोफ़ोन बंद है। ब्राउज़र सेटिंग में इस साइट के लिए अनुमति दें, या कीबोर्ड का माइक बटन इस्तेमाल करें।",
     mic_none: "माइक्रोफ़ोन नहीं मिला। देखें कि फ़ोन या कंप्यूटर ब्राउज़र को माइक की अनुमति देता है।",
@@ -551,6 +551,11 @@ function ago(iso) {
   if (!iso) return "";
   const m = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
   return m < 60 ? t("ago_min", m) : m < 2880 ? t("ago_h", Math.round(m / 60)) : t("ago_d", Math.round(m / 1440));
+}
+// For times the server rounded down to the hour (the city feed): never claim "13 min ago".
+function agoHour(iso) {
+  if (!iso) return "";
+  return Date.now() - new Date(iso).getTime() < 3600000 ? t("this_hour") : ago(iso);
 }
 const typeInfo = (id) => TYPES.find((x) => x.id === id) || TYPES[TYPES.length - 1];
 
@@ -1132,7 +1137,7 @@ function feedRow(f) {
   const ch = CHANNELS.find((c) => c.id === f.channel) || CHANNELS[CHANNELS.length - 1];
   const r = row(open ? "button" : "div", `<span class="ch-icon"><svg aria-hidden="true"><use href="#${ch.icon}"/></svg></span><span class="grow"><strong></strong><small></small></span>`);
   r.querySelector("strong").textContent = typeInfo(f.scam_type)[lang];
-  r.querySelector("small").textContent = `${fmtValue(f.identifier_type, f.display_value)} · ${f.locality} · ${ago(f.occurred_at)}`;
+  r.querySelector("small").textContent = `${fmtValue(f.identifier_type, f.display_value)} · ${f.locality} · ${agoHour(f.occurred_at)}`;
   if (open) {
     r.insertAdjacentHTML("beforeend", `<svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>`);
     r.addEventListener("click", () => lookupValue(f.identifier_type, f.display_value));
