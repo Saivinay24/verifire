@@ -479,7 +479,12 @@ def main() -> int:
         )
         started = c.get("/ready").json().get("started_at")
         for seed in a.seeds:
-            run_world(c, build(seed), gr, a.workers)
+            try:
+                run_world(c, build(seed), gr, a.workers)
+            except httpx.TransportError as exc:  # the judges' tool would count this as a failure too
+                gr.check(
+                    "5", "server answered every request", "Row 5: stays up under the judges' load"
+                ).record(False, f"seed {seed}: connection failed mid-run: {exc!r}")
         again = c.get("/ready").json().get("started_at")
         gr.check(
             "5", "server never restarted during the run", "Row 5: stays up under the judges' load"
