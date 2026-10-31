@@ -5,9 +5,11 @@ import time
 import uuid
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from app.api import health
+from app.api import health, routes
 from app.config import get_settings
 from app.logging_setup import configure_logging, log_event
 
@@ -45,7 +47,18 @@ def create_app() -> FastAPI:
         response.headers["X-Request-ID"] = request_id
         return response
 
+    @app.exception_handler(RequestValidationError)
+    async def bad_request(_: Request, __: RequestValidationError) -> JSONResponse:
+        # The brief's contract is 400 for bad input, not FastAPI's default 422. No input echoed back.
+        return JSONResponse(status_code=400, content={"error": "invalid request"})
+
+    @app.exception_handler(Exception)
+    async def server_error(_: Request, exc: Exception) -> JSONResponse:
+        log_event(logger, "unhandled", error=type(exc).__name__)
+        return JSONResponse(status_code=500, content={"error": "INTERNAL_ERROR"})
+
     app.include_router(health.router)
+    app.include_router(routes.router)
     return app
 
 

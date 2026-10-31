@@ -14,12 +14,18 @@ ALLOWED_FIELDS = frozenset(
 )
 
 
+# Loggers whose message text we trust to carry no request data. Other libraries (HTTP clients,
+# drivers) may put URLs or parameters into their messages, so only their level and name are kept.
+TRUSTED_LOGGERS = ("scammap", "uvicorn.error", "alembic")
+
+
 class AllowListJsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
+        trusted = record.name.startswith(TRUSTED_LOGGERS)
         payload: dict[str, object] = {
             "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(record.created)),
             "level": record.levelname,
-            "msg": record.getMessage(),
+            "msg": record.getMessage() if trusted else f"[{record.name}] message withheld",
         }
         fields = getattr(record, "fields", {})
         payload.update({k: v for k, v in fields.items() if k in ALLOWED_FIELDS})
@@ -35,6 +41,7 @@ def configure_logging(level: str) -> None:
     # Uvicorn's access log prints full URLs including query strings (lookup values). Silence it;
     # our middleware logs the route template instead.
     logging.getLogger("uvicorn.access").disabled = True
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def log_event(logger: logging.Logger, msg: str, **fields: object) -> None:
