@@ -269,7 +269,7 @@ const TYPE_WORDS = {
   "loan-app-harassment": "loan app instant loan threat morphed photos contacts recovery लोन धमकी",
   "electricity-disconnection": "electricity bill power cut light bescom meter बिजली बिल",
   "fake-customer-care": "customer care helpline refund support google search swiggy amazon flipkart bank कस्टमर केयर हेल्पलाइन",
-  "otp-call": "otp code pin password cvv card bank verification ओटीपी कोड",
+  "otp-call": "otp code pin cvv card bank verification ओटीपी कोड",
   "sextortion": "video call nude blackmail girl record leak ब्लैकमेल वीडियो",
 };
 
