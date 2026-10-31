@@ -582,3 +582,5 @@ div.msg-id { cursor: default; }
 .pull-city { margin: 30px 2px 0; padding-top: 18px; border-top: 1px solid var(--line); font-size: 19px; letter-spacing: -0.02em; }
 .pull-city small { display: block; margin-top: 4px; font-size: 13.5px; font-weight: 400; color: var(--ink-2); letter-spacing: 0; }
 #hereTypesHead { margin-top: 8px; }
+.ex-list .msg-id .badge { display: inline-block; margin-top: 6px; max-width: 100%; }
+.ex-list .msg-id b { white-space: normal; overflow-wrap: anywhere; }

@@ -432,7 +432,7 @@ function renderArea() {
   const a = areaByPin(area);
   $("#areaLabel").textContent = a ? a.locality : t("choose_area");
   $("#areaBtn").dataset.set = a ? "true" : "false";
-  $("#mapAreaLabel").textContent = a ? `${a.locality}, ${a.city}` : t("choose_area");
+  $("#mapAreaLabel").textContent = a ? a.locality : t("choose_area");
 }
 function openAreaPicker() {
   $("#areaSearch").value = ""; renderAreaList("");
@@ -1178,7 +1178,7 @@ function exRow(item, sub, clickable) {
   if (clickable) b.type = "button";
   b.className = "msg-id";
   b.innerHTML = `<span class="d-icon"><svg aria-hidden="true"><use href="${KIND_ICON[item.identifier_type] || "#i-phone"}"/></svg></span>`
-    + `<span class="grow"><b></b><small></small></span>` + (item.verdict ? `<span class="badge"></span>` : "")
+    + `<span class="grow"><b></b><small></small>${item.verdict ? `<span class="badge"></span>` : ""}</span>`
     + (clickable ? `<svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>` : "");
   b.querySelector("b").textContent = item.display_value;
   b.querySelector("small").textContent = sub;
