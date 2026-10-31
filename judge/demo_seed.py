@@ -8,6 +8,7 @@ Resets the server, plays each story, then looks every number up and prints what 
 from __future__ import annotations
 
 import argparse
+import random
 import sys
 from collections.abc import Callable
 from typing import Any
@@ -15,6 +16,7 @@ from typing import Any
 import httpx
 
 from judge.catalog import Ctx, area_reports
+from judge.sms_scripts import SCRIPTS, fill
 from judge.world import GRUDGE_NOTES
 
 Story = tuple[str, str, str, str, Callable[[Ctx, str], list[dict[str, Any]]], Callable[[dict[str, Any]], bool]]
@@ -69,6 +71,21 @@ def bots_instant(x: Ctx, v: str) -> list[dict[str, Any]]:
     return [x.rep(value=v, note=x.victim(v)["note"], hours_ago=x.r.uniform(0.2, 0.9), lag_min=x.r.uniform(0.1, 1)) for _ in range(25)]
 
 
+def same_script(script: str, n: int, start_h: float) -> Callable[[Ctx, str], list[dict[str, Any]]]:
+    """One SMS script sent from a new number each time; victims report from the pasted message."""
+
+    def play(x: Ctx, v: str) -> list[dict[str, Any]]:
+        r = random.Random(v)
+        reps = []
+        for i in range(n):
+            body = x.victim(v, st=SCRIPTS[script][0], hours_ago=start_h + 7 * i, shot=i % 2 == 0)
+            body["message"] = fill(script, r, num=v.replace(" ", ""))
+            reps.append(body)
+        return reps
+
+    return play
+
+
 def none(x: Ctx, v: str) -> list[dict[str, Any]]:
     return []
 
@@ -88,6 +105,9 @@ STORIES: list[Story] = [
     ("25 bots within a minute", "phone", "98450 88888", "SUSPICIOUS, never KNOWN", bots_instant, verdict("SUSPICIOUS")),
     ("Owner disputes it (after 4 reports)", "phone", "98450 77777", "SUSPICIOUS, challenged", victims(4), lambda b: b.get("challenged") is True and b.get("verdict") == "SUSPICIOUS"),
     ("Real helpline, people report it anyway", "phone", "1930", "VERIFIED_BUSINESS", victims(6, "fake-customer-care"), verdict("VERIFIED_BUSINESS")),
+    ("Same SMS script, number 1 of 3", "phone", "98451 10001", "KNOWN_SCAM, found by wording", same_script("electricity", 4, 70), verdict("KNOWN_SCAM")),
+    ("Same SMS script, number 2 of 3", "phone", "98451 10002", "KNOWN_SCAM, found by wording", same_script("electricity", 4, 40), verdict("KNOWN_SCAM")),
+    ("Same SMS script, number 3 of 3", "phone", "98451 10003", "KNOWN_SCAM, found by wording", same_script("electricity", 3, 8), verdict("KNOWN_SCAM")),
     ("Nobody reported it", "phone", "98450 99999", "NO_REPORTS", none, verdict("NO_REPORTS")),
 ]  # fmt: skip
 
@@ -113,6 +133,11 @@ def main() -> int:
         good = check(b)
         ok &= good
         print(f"| {name} | {t} | `{v}` | {want} | {b.get('verdict')} | {b.get('distinct_reporters')} | `{b.get('display_value')}` | {'yes' if good else 'NO'} |")
+    sms = fill("electricity", random.Random(1), num="7012345678")  # a fresh send nobody has reported
+    found = x.c.post("/explore/similar", json={"text": sms}).json().get("matches", [])
+    ok &= len(found) == 3
+    print(f"\nWording search for a new send of the electricity script finds {len(found)} numbers: "
+          f"{[m['display_value'] for m in found]}")  # fmt: skip
     alerts = x.alerts("560034")
     spike = [i for i in alerts if i["type"] == "SPIKE"]
     ok &= bool(spike)

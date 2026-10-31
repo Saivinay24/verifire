@@ -15,7 +15,7 @@ from app.db import get_engine
 from app.domain.areas import AREAS
 from app.domain.identifiers import InvalidIdentifier
 from app.repos import store
-from app.services import areas, challenges, insights, lookup, reports
+from app.services import areas, challenges, explore, insights, lookup, reports
 
 router = APIRouter()
 
@@ -190,3 +190,22 @@ def post_review_decision(request: Request, challenge_id: str, payload: Annotated
         return error(400, str(exc))
     lookup.invalidate()
     return result
+
+
+@router.post("/explore/similar")
+def post_similar(payload: Annotated[Any, Body()]) -> Any:
+    """Numbers whose reports used close wording to a pasted message. The text is never stored."""
+    text = payload.get("text") if isinstance(payload, dict) else None
+    if not isinstance(text, str):
+        return error(400, "text is required")
+    _settle_due()
+    try:
+        return explore.similar(text, now())
+    except explore.TooShort as exc:
+        return error(400, str(exc))
+
+
+@router.get("/explore/known")
+def get_known(scam_type: str = Query(""), city: str = Query("")) -> Any:
+    _settle_due()
+    return explore.known(scam_type or None, city or None, now())

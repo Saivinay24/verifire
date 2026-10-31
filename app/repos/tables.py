@@ -53,6 +53,7 @@ reports = sa.Table(
     sa.Column("pincode", sa.String(6)),
     sa.Column("note_len", sa.Integer),
     sa.Column("note_sig", pg.ARRAY(sa.BigInteger)),
+    sa.Column("msg_sig", pg.ARRAY(sa.BigInteger)),  # pasted scam message; wording search only
     sa.Column("note_lex", sa.Boolean),
     sa.Column("note_scam", sa.Boolean),
     sa.Column("note_review", sa.Boolean),

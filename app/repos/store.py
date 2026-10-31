@@ -340,3 +340,80 @@ def reset_all(conn: Connection) -> int:
     conn.execute(sa.delete(challenges))
     conn.execute(sa.delete(identifiers))
     return int(deleted or 0)
+
+
+def fingerprinted_reports(conn: Connection, since: datetime) -> Sequence[RowMapping]:
+    """Counted reports with a note or message fingerprint, on identifiers people are warned about.
+
+    For wording search. Returns the fingerprint, never the note (it was never stored) and never
+    who reported. Reports set aside by an upheld dispute are left out.
+    """
+    return (
+        conn.execute(
+            sa.select(
+                reports.c.note_sig,
+                reports.c.msg_sig,
+                reports.c.pincode,
+                reports.c.identifier_id,
+                identifiers.c.id_type,
+                identifiers.c.value_norm,
+                identifiers.c.verdict,
+                identifiers.c.unmasked,
+                identifiers.c.verified,
+                identifiers.c.challenged,
+                identifiers.c.distinct_reporters,
+                identifiers.c.top_scam_type,
+                identifiers.c.last_seen,
+            )
+            .join(identifiers, identifiers.c.id == reports.c.identifier_id)
+            .where(
+                reports.c.received_at >= since,
+                sa.or_(
+                    sa.func.cardinality(reports.c.note_sig) > 0,
+                    sa.func.cardinality(reports.c.msg_sig) > 0,
+                ),
+                reports.c.alert_weight > 0,
+                identifiers.c.verdict.in_(["KNOWN_SCAM", "SUSPICIOUS"]),
+                identifiers.c.verified.is_not(True),
+                sa.or_(
+                    identifiers.c.cleared_before.is_(None),
+                    reports.c.received_at >= identifiers.c.cleared_before,
+                ),
+            )
+        )
+        .mappings()
+        .all()
+    )
+
+
+def known_scams(conn: Connection, since: datetime) -> Sequence[RowMapping]:
+    """Confirmed scams (unmasked, not disputed, not verified) and the pincodes they were reported in."""
+    return (
+        conn.execute(
+            sa.select(
+                identifiers.c.id,
+                identifiers.c.id_type,
+                identifiers.c.value_norm,
+                identifiers.c.unmasked,
+                identifiers.c.verified,
+                identifiers.c.distinct_reporters,
+                identifiers.c.top_scam_type,
+                identifiers.c.first_seen,
+                identifiers.c.last_seen,
+                sa.func.array_agg(sa.distinct(reports.c.pincode)).label("pincodes"),
+            )
+            .join(reports, reports.c.identifier_id == identifiers.c.id)
+            .where(
+                identifiers.c.verdict == "KNOWN_SCAM",
+                identifiers.c.unmasked.is_(True),
+                identifiers.c.challenged.is_not(True),
+                identifiers.c.verified.is_not(True),
+                identifiers.c.last_seen >= since,
+                reports.c.alert_weight > 0,
+            )
+            .group_by(identifiers.c.id)
+            .order_by(identifiers.c.last_seen.desc())
+        )
+        .mappings()
+        .all()
+    )

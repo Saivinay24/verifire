@@ -45,7 +45,20 @@ const T = {
     msg_bad_sub: (n) => `${n} warning signs below.`, msg_warn_sub: "One warning sign below.",
     msg_ok_sub: "That doesn't make it safe. If someone asks for money or an OTP, stop and check.",
     msg_ids: "Numbers and links in it", msg_flags: "Warning signs", msg_show: "Show the message with the parts we found",
-    msg_report: "Report this message", msg_checking: "Checking", msg_noids: "No number, UPI ID or link found in it.",
+    msg_report: "Report this message",
+    msg_attached: "The message is attached. We keep only a fingerprint of its wording, to spot the same script on other numbers.", msg_checking: "Checking", msg_noids: "No number, UPI ID or link found in it.",
+    ex_title: "Explore scam data", ex_menu_sub: "Find a scam by its wording, and browse confirmed scams. For research and the curious.",
+    ex_sub: "Built only from what the map already shows. Never who reported, never what anyone wrote.",
+    ex_fp_title: "Find a scam by its wording",
+    ex_fp_sub: "Paste a scam message. We look for numbers whose victims reported the same script, even when the number changed.",
+    ex_fp_ph: "Paste the message here", ex_fp_btn: "Find the same script", ex_searching: "Searching",
+    ex_fp_none: "No reported number used this wording yet. That doesn't make the message safe.",
+    ex_fp_found: (n) => `${n} ${n === 1 ? "number" : "numbers"} used this script.`,
+    ex_match: (n) => `Same wording in ${n} ${n === 1 ? "report" : "reports"}`,
+    ex_known_title: "Confirmed scams", ex_known_sub: "Reported by 3 or more people who don't know each other, and not under review. Last 90 days.",
+    ex_all_types: "All scam types", ex_all_cities: "All cities",
+    ex_known_count: (n) => `${n} confirmed`, ex_known_none: "None match these filters.",
+    ex_people: (n) => `${n} people`, ex_trends: "See trends by scam type, channel and city",
     flag_otp: "Mentions an OTP, PIN or CVV. Never share these, not even with \u201cbank staff\u201d.",
     flag_arrest: "Police or legal threats. Real police never ask for money on a call or message.",
     flag_urgent: "Rushes you. A short deadline is meant to stop you from checking first.",
@@ -164,7 +177,20 @@ const T = {
     msg_bad_sub: (n) => `नीचे ${n} चेतावनी संकेत हैं।`, msg_warn_sub: "नीचे एक चेतावनी संकेत है।",
     msg_ok_sub: "इसका मतलब यह सुरक्षित नहीं है। अगर कोई पैसे या OTP माँगे, तो रुकें और जाँचें।",
     msg_ids: "इसमें नंबर और लिंक", msg_flags: "चेतावनी संकेत", msg_show: "मैसेज देखें, मिले हुए हिस्सों के साथ",
-    msg_report: "यह मैसेज रिपोर्ट करें", msg_checking: "जाँच रहे हैं", msg_noids: "इसमें कोई नंबर, UPI ID या लिंक नहीं मिला।",
+    msg_report: "यह मैसेज रिपोर्ट करें",
+    msg_attached: "मैसेज जुड़ गया है। हम सिर्फ़ उसके शब्दों की पहचान (फ़िंगरप्रिंट) रखते हैं, ताकि यही स्क्रिप्ट दूसरे नंबरों पर पकड़ी जा सके।", msg_checking: "जाँच रहे हैं", msg_noids: "इसमें कोई नंबर, UPI ID या लिंक नहीं मिला।",
+    ex_title: "स्कैम डेटा देखें", ex_menu_sub: "शब्दों से स्कैम खोजें, और पक्के स्कैम देखें। रिसर्च और जानकारी के लिए।",
+    ex_sub: "सिर्फ़ उसी से बना जो नक्शे पर पहले से दिखता है। कभी नहीं कि किसने रिपोर्ट किया या क्या लिखा।",
+    ex_fp_title: "शब्दों से स्कैम खोजें",
+    ex_fp_sub: "स्कैम मैसेज पेस्ट करें। हम ऐसे नंबर खोजते हैं जिनके पीड़ितों ने यही स्क्रिप्ट रिपोर्ट की, भले नंबर बदल गया हो।",
+    ex_fp_ph: "मैसेज यहाँ पेस्ट करें", ex_fp_btn: "यही स्क्रिप्ट खोजें", ex_searching: "खोज रहे हैं",
+    ex_fp_none: "किसी रिपोर्ट किए गए नंबर ने अभी तक ये शब्द इस्तेमाल नहीं किए। इसका मतलब यह नहीं कि मैसेज सुरक्षित है।",
+    ex_fp_found: (n) => `${n} नंबरों ने यह स्क्रिप्ट इस्तेमाल की।`,
+    ex_match: (n) => `${n} रिपोर्ट में यही शब्द`,
+    ex_known_title: "पक्के स्कैम", ex_known_sub: "3 या ज़्यादा अनजान लोगों ने रिपोर्ट किया, और रिव्यू में नहीं। पिछले 90 दिन।",
+    ex_all_types: "सभी तरह के स्कैम", ex_all_cities: "सभी शहर",
+    ex_known_count: (n) => `${n} पक्के`, ex_known_none: "इन फ़िल्टर से कुछ नहीं मिला।",
+    ex_people: (n) => `${n} लोग`, ex_trends: "स्कैम के प्रकार, तरीके और शहर के हिसाब से ट्रेंड देखें",
     flag_otp: "OTP, PIN या CVV की बात है। इन्हें कभी किसी को न बताएँ, \u201cबैंक वाले\u201d को भी नहीं।",
     flag_arrest: "पुलिस या कानूनी धमकी। असली पुलिस कॉल या मैसेज पर पैसे नहीं माँगती।",
     flag_urgent: "जल्दबाज़ी करवाता है, ताकि आप रुककर जाँच न करें।",
@@ -459,6 +485,7 @@ document.addEventListener("keydown", (e) => {
   if (!$("#drawer").hidden) { setDrawer(false); return; }
   const open = document.querySelector(".sheet:not([hidden])");
   if (open) closeSheet("#" + open.id); else if (!$("#reportFlow").hidden) closeFlow(); else if (!$("#mapView").hidden) closeMap();
+  else if (!$("#exploreView").hidden) closeExplore();
   else if (!$("#statsView").hidden) closeStats();
 });
 
@@ -562,6 +589,7 @@ $("#reportThis").addEventListener("click", () => { closeSheet("#resultSheet"); o
 // up, exactly as if the person had typed each one; the text itself never leaves the device.
 const KIND_ICON = { phone: "#i-phone", upi: "#i-rupee", url: "#i-globe", sender_id: "#i-chat" };
 let lastMessage = null;
+let draftMessage = null;
 
 function markedText(text, ranges) {
   // Merge overlapping ranges, then build text nodes and <mark>s (never innerHTML).
@@ -648,9 +676,9 @@ $("#msgReport").addEventListener("click", () => {
   if (!lastMessage?.ids.length) return;
   closeSheet("#msgSheet");
   openFlow(lastMessage.ids[0].value);
-  // The message becomes the report's note, which the server turns into a fingerprint and forgets.
-  $("#reportNote").value = lastMessage.text.slice(0, 600);
-  $("#noteBody").hidden = false; $("#noteToggle").setAttribute("aria-expanded", "true");
+  // Sent as "message", not as the note: the server keeps only its fingerprint, for wording
+  // search. Many real victims paste the same SMS, and as notes they would read as one voice.
+  draftMessage = lastMessage.text.slice(0, 2000); $("#msgAttached").hidden = false;
 });
 
 // ---------------- Report flow ----------------
@@ -717,6 +745,7 @@ function go(n) {
 }
 function openFlow(prefill) {
   Object.assign(draft, { channel: null, type: null, when: 0 });
+  draftMessage = null; $("#msgAttached").hidden = true;
   $("#reportForm").reset(); $("#valueError").hidden = true;
   $("#reportValue").value = prefill; updateKind($("#reportValue"), $("#reportKind"));
   $("#typeSearch").value = ""; setTypeSearch(false);
@@ -756,6 +785,7 @@ $("#reportForm").addEventListener("submit", async (e) => {
     identifier_type: kind, identifier_value: value, pincode: a.pincode, locality: a.locality, city: a.city,
     note: $("#reportNote").value.trim(), has_screenshot: false, amount_lost_inr: Number.isFinite(amount) ? amount : 0,
   };
+  if (draftMessage) payload.message = draftMessage;
   stopListening();
   $("#sendReport").disabled = true;
   try {
@@ -1117,6 +1147,65 @@ function focusArea(x) {
 // ---------------- Live statistics ----------------
 let statsDays = 30;
 const RANGES = [7, 30, 90];
+// ---------------- Explore ----------------
+// For research and the curious, kept apart from check-and-report. Same public data as the map.
+function exRow(item, sub, clickable) {
+  const b = document.createElement(clickable ? "button" : "div");
+  if (clickable) b.type = "button";
+  b.className = "msg-id";
+  b.innerHTML = `<span class="d-icon"><svg aria-hidden="true"><use href="${KIND_ICON[item.identifier_type] || "#i-phone"}"/></svg></span>`
+    + `<span class="grow"><b></b><small></small></span>` + (item.verdict ? `<span class="badge"></span>` : "")
+    + (clickable ? `<svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>` : "");
+  b.querySelector("b").textContent = item.display_value;
+  b.querySelector("small").textContent = sub;
+  if (item.verdict) { const g = b.querySelector(".badge"); g.dataset.v = item.verdict; g.textContent = t("v_" + item.verdict); }
+  // Only a number shown in full can be opened; a masked one stays masked here too.
+  if (clickable) b.addEventListener("click", () => lookupValue(item.identifier_type, item.display_value));
+  return b;
+}
+const exSub = (x, extra) => [typeInfo(x.scam_type)[lang], (x.cities || []).join(", "), extra].filter(Boolean).join(", ");
+
+function openExplore() {
+  $("#exploreView").hidden = false; $("#exploreView").scrollTop = 0;
+  const types = $("#exKnownType"), cities = $("#exKnownCity");
+  if (!types.options.length) {
+    types.append(new Option(t("ex_all_types"), ""));
+    TYPES.filter((x) => x.id !== "other").forEach((x) => types.append(new Option(x[lang], x.id)));
+    cities.append(new Option(t("ex_all_cities"), ""));
+    [...new Set(AREAS.map((a) => a.city))].sort().forEach((c) => cities.append(new Option(c, c)));
+  }
+  loadKnown();
+}
+function closeExplore() { $("#exploreView").hidden = true; }
+async function loadKnown() {
+  const q = new URLSearchParams({ scam_type: $("#exKnownType").value, city: $("#exKnownCity").value });
+  const list = $("#exKnownList");
+  try {
+    const r = await api(`/explore/known?${q}`);
+    list.replaceChildren();
+    $("#exKnownStatus").textContent = r.total ? t("ex_known_count", r.total) : t("ex_known_none");
+    r.scams.forEach((x) => list.append(exRow(x, exSub(x, `${t("ex_people", x.people)}, ${ago(x.last_seen)}`), x.in_full)));
+  } catch (ex) { if (!(ex instanceof LicenceExpired)) $("#exKnownStatus").textContent = ex.message; }
+}
+$("#exKnownType").addEventListener("change", loadKnown);
+$("#exKnownCity").addEventListener("change", loadKnown);
+$("#fpText").addEventListener("input", () => { $("#fpBtn").disabled = $("#fpText").value.trim().length < 20; });
+$("#fpForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = $("#fpText").value.trim(); if (text.length < 20) return;
+  const status = $("#fpStatus"), list = $("#fpList");
+  status.hidden = false; status.textContent = t("ex_searching"); list.replaceChildren(); $("#fpBtn").disabled = true;
+  try {
+    const r = await api("/explore/similar", { method: "POST", body: JSON.stringify({ text }) });
+    status.textContent = r.matches.length ? t("ex_fp_found", r.matches.length) : t("ex_fp_none");
+    r.matches.forEach((x) => list.append(exRow(x, exSub(x, t("ex_match", x.matching_reports)), x.in_full)));
+  } catch (ex) { if (!(ex instanceof LicenceExpired)) status.textContent = ex.status === 400 ? t("ex_fp_sub") : ex.message; }
+  finally { $("#fpBtn").disabled = false; }
+});
+$("#menuExplore").addEventListener("click", fromMenu(openExplore));
+$("#exploreBack").addEventListener("click", closeExplore);
+$("#exTrends").addEventListener("click", () => { closeExplore(); openStats(); });
+
 function openStats() { $("#statsView").hidden = false; $("#statsView").scrollTop = 0; loadStats(); }
 function closeStats() { $("#statsView").hidden = true; }
 $("#openStats").addEventListener("click", openStats);

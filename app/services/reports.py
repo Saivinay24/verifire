@@ -103,6 +103,12 @@ def validate(payload: dict[str, Any], now: datetime) -> dict[str, Any]:
     if isinstance(amount, bool) or not isinstance(amount, int | float) or amount < 0:
         raise ReportRejected("amount_lost_inr must be a number of rupees")
     features = extract((note or "")[:2000])
+    # Optional: the scam message itself, pasted from SMS or WhatsApp. Fingerprinted and dropped;
+    # used only for wording search, never by the trust engine (see migration 0005).
+    message = payload.get("message")
+    if message is not None and not isinstance(message, str):
+        raise ReportRejected("message must be text")
+    msg_sig = extract(message[:2000]).signature if message else []
     return {
         "report_id": report_id,
         "id_type": id_type,
@@ -118,6 +124,7 @@ def validate(payload: dict[str, Any], now: datetime) -> dict[str, Any]:
             "pincode": pincode,
             "note_len": features.length,
             "note_sig": features.signature,
+            "msg_sig": msg_sig or None,
             "note_lex": features.mentions_method,
             "note_scam": features.names_scam,
             "note_review": features.is_review,
