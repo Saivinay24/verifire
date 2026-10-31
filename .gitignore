@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.key
+keys/
+licences/private/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
