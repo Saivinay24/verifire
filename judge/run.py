@@ -60,6 +60,7 @@ class Grader:
     def __init__(self) -> None:
         self.checks: dict[str, Check] = {}
         self.latencies: list[float] = []
+        self.server_ms: list[float] = []
         self.info: list[str] = []
 
     def check(self, row: str, name: str, clause: str) -> Check:
@@ -94,6 +95,9 @@ def run_world(c: httpx.Client, w: World, gr: Grader, workers: int) -> None:
         resp = c.get(path, params=params)
         if path == "/lookup":
             gr.latencies.append(time.perf_counter() - t0)
+            st = resp.headers.get("server-timing", "")
+            if "dur=" in st:
+                gr.server_ms.append(float(st.split("dur=")[1].split(";")[0]))
         if resp.headers.get("content-type", "").startswith("application/json"):
             bodies.append((f"{path}?{params}", resp.json()))
         return resp
@@ -436,6 +440,11 @@ def summarise(gr: Grader, seeds: list[int], base_url: str, elapsed: float) -> tu
         lines += [f"## Lookup latency: {'PASS' if lat_ok else 'FAIL'}", "",
                   f"{len(lat)} lookups: p50 {p(0.5):.0f} ms, p95 {p(0.95):.0f} ms, p99 {p(0.99):.0f} ms, max {lat[-1] * 1000:.0f} ms, "
                   f"mean {statistics.mean(lat) * 1000:.0f} ms (bar: under 500 ms)", ""]  # fmt: skip
+        if gr.server_ms:
+            sm = sorted(gr.server_ms)
+            q = lambda x: sm[min(len(sm) - 1, int(x * len(sm)))]  # noqa: E731
+            lines += [f"Inside the server (Server-Timing): p50 {q(0.5):.1f} ms, p95 {q(0.95):.1f} ms, "
+                      f"p99 {q(0.99):.1f} ms, max {sm[-1]:.1f} ms. The rest is network between this laptop and the server.", ""]  # fmt: skip
     fails = [(c, f) for c in gr.checks.values() for f in c.failures]
     lines += [f"## Failures ({len(fails)})", ""]
     lines += [f"- [row {c.row}] {c.name}: {f}" for c, f in fails] or ["None."]

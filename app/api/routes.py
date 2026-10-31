@@ -46,6 +46,7 @@ def post_report(request: Request, payload: Annotated[Any, Body()]) -> Any:
         payload = {**payload, "ip_prefix": _connection_prefix(request)}
     try:
         accepted = reports.submit(payload, now())
+        lookup.invalidate()
     except reports.ReportRejected as exc:
         return error(400, str(exc))
     except reports.RateLimited:
@@ -101,6 +102,7 @@ def get_areas() -> dict[str, Any]:
 def admin_reset() -> dict[str, Any]:
     with get_engine().begin() as conn:
         deleted = store.reset_all(conn)
+    lookup.invalidate()
     return {"ok": True, "deleted_reports": deleted}
 
 
@@ -109,6 +111,8 @@ def post_challenge(payload: Annotated[Any, Body()]) -> Any:
     if not isinstance(payload, dict):
         return error(400, "body must be a JSON object")
     try:
-        return challenges.challenge(payload)
+        result = challenges.challenge(payload)
+        lookup.invalidate()
+        return result
     except InvalidIdentifier as exc:
         return error(400, str(exc))

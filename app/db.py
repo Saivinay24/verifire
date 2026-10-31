@@ -13,5 +13,7 @@ def get_engine() -> Engine:
         get_settings().sqlalchemy_url,
         pool_size=5,
         max_overflow=10,
-        pool_pre_ping=True,  # survive the host recycling idle connections
+        # No pre-ping: it costs a database round trip on every request. Recycling connections before
+        # the host's idle timeout keeps them alive instead.
+        pool_recycle=240,
     )

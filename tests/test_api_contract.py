@@ -234,3 +234,12 @@ def test_trust_harness_two_seeds(client: TestClient) -> None:
     log: list[str] = []
     result = run_suite(client, [7, 8], log)
     assert result["failures"] == [], "\n".join(log)
+
+
+def test_lookup_cache_never_serves_a_stale_answer(client: TestClient) -> None:
+    value = "+91 70000 12345"
+    assert client.get("/lookup", params={"type": "phone", "value": value}).json()["report_count"] == 0
+    assert client.post("/reports", json=_report(900, value=value)).status_code == 201
+    assert client.get("/lookup", params={"type": "phone", "value": value}).json()["report_count"] == 1
+    client.post("/admin/reset")
+    assert client.get("/lookup", params={"type": "phone", "value": value}).json()["report_count"] == 0

@@ -51,6 +51,8 @@ def create_app() -> FastAPI:
             duration_ms=round((time.perf_counter() - started) * 1000, 1),
         )
         response.headers["X-Request-ID"] = request_id
+        # Time spent inside the server, so latency tests can separate it from the network.
+        response.headers["Server-Timing"] = f"app;dur={(time.perf_counter() - started) * 1000:.1f}"
         return response
 
     @app.exception_handler(RequestValidationError)

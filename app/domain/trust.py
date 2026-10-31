@@ -16,7 +16,7 @@ import math
 import statistics
 from collections import Counter, defaultdict
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from enum import StrEnum
 
@@ -111,6 +111,26 @@ def _iqr_seconds(times: Sequence[datetime]) -> float:
 
 
 def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
+    """Trust result for one identifier, protected against a blank flood drowning out real victims.
+
+    A scammer can flood blank reports onto their own number to trip the "mostly blank" pile-on
+    signal. So when that is the only signal, the people who wrote something are judged on their own;
+    if they establish the scam by themselves, that result stands and the blank reports are set aside.
+    """
+    full = _evaluate(reports)
+    if full.pile_on != ["mostly_blank"]:
+        return full
+    written = [r for r in reports if r.note_len >= C.NOTE_SHORT_CHARS]
+    if not written:
+        return full
+    clean = _evaluate(written)
+    if not _established(clean, C.KNOWN_MIN_SCORE):
+        return full
+    explain = {**clean.explain, "blank_set_aside": len(reports) - len(written)}
+    return replace(clean, group_of=full.group_of, explain=explain)
+
+
+def _evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
     if not reports:
         return TrustResult(explain={"reports": 0})
     rs = sorted(reports, key=lambda r: (r.reported_at, r.id))
@@ -120,9 +140,17 @@ def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
 
     # Step 1a: one person is one voice (spamming); one connection is one voice (fake accounts,
     # including slow-drip sybils, so the link spans the identifier's whole history).
+    # Mobile carriers put many strangers behind one /24, so two accounts on a connection may be two
+    # neighbours; three or more on one connection reporting the same identifier is a farm.
+    accounts_on: dict[str, set[str]] = defaultdict(set)
+    for r in rs:
+        accounts_on[r.ip_key].add(r.reporter_key)
     first_by: dict[tuple[str, str], str] = {}
     for r in rs:
-        for kind, key in (("same_reporter", r.reporter_key), ("same_connection", r.ip_key)):
+        links = [("same_reporter", r.reporter_key)]
+        if len(accounts_on[r.ip_key]) >= C.SAME_CONNECTION_MIN_ACCOUNTS:
+            links.append(("same_connection", r.ip_key))
+        for kind, key in links:
             anchor = first_by.setdefault((kind, key), r.id)
             if groups.union(anchor, r.id):
                 edges[kind] += 1
@@ -288,11 +316,11 @@ def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
         noted = [it for it in units.values() if any(r.note_len >= C.NOTE_SHORT_CHARS for r in it)]
         if 1 - len(noted) / n_units >= C.PILE_ON_BLANK_SHARE:
             pile_on.append("mostly_blank")
-        if len(noted) >= C.PILE_ON_MIN_NOTES:
-            if sum(any(r.note_scam for r in it) for it in noted) / len(noted) < C.PILE_ON_SCAM_SHARE:
-                pile_on.append("no_scam_described")
-            if sum(any(r.note_review for r in it) for it in noted) / len(noted) >= C.PILE_ON_REVIEW_SHARE:
-                pile_on.append("reviews_not_scams")
+        if (
+            len(noted) >= C.PILE_ON_MIN_NOTES
+            and sum(any(r.note_review for r in it) for it in noted) / len(noted) >= C.PILE_ON_REVIEW_SHARE
+        ):
+            pile_on.append("reviews_not_scams")
         unit_types = Counter(Counter(r.scam_type for r in it).most_common(1)[0][0] for it in units.values())
         if unit_types.most_common(1)[0][1] / n_units < C.PILE_ON_TYPE_SHARE:
             pile_on.append("no_agreement_on_type")

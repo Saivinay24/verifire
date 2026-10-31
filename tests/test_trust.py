@@ -105,3 +105,17 @@ def test_real_campaign_with_plain_notes_is_known_and_alerts() -> None:
     assert not result.pile_on
     assert verdict(reports) is trust.Verdict.KNOWN_SCAM
     assert len(result.alert_ids) == len(notes)
+
+
+def test_blank_flood_cannot_demote_an_established_scam() -> None:
+    victims = [
+        facts(1, "Caller pretending to be my bank asked for the OTP to stop a transaction"),
+        facts(2, "bank se bol raha hoon bola, card block hoga, OTP maanga"),
+        facts(3, "बैंक वाला बनकर कॉल किया और ओटीपी मांगा"),
+        facts(4, "fake bank fraud team wanted my card number and the otp"),
+    ]
+    assert verdict(victims) is trust.Verdict.KNOWN_SCAM
+    flood = [facts(10 + i, "", hours_ago=0.5) for i in range(15)]
+    assert verdict(victims + flood) is trust.Verdict.KNOWN_SCAM
+    # ...but a flood of blanks alone never confirms anything.
+    assert verdict(flood) is trust.Verdict.SUSPICIOUS

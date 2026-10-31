@@ -1,5 +1,7 @@
 """Lookup (brief, Appendix A.3): one cached row plus a short evidence list. No reporter data leaves here."""
 
+import threading
+import time
 from typing import Any
 
 from app.db import get_engine
@@ -11,10 +13,40 @@ from app.repos import store
 
 EVIDENCE_LIMIT = 20
 
+# Answers are cached in this process and dropped on every write (report, challenge, reset). A write
+# bumps the generation after it commits, so an answer read before the write is never served after
+# it. Correct for one server process, which is how the service runs (see render.yaml).
+CACHE_TTL_SECONDS = 60.0
+CACHE_MAX = 5000
+_cache: dict[tuple[int, str, str], tuple[float, dict[str, Any]]] = {}
+_generation = 0
+_lock = threading.Lock()
+
+
+def invalidate() -> None:
+    global _generation
+    with _lock:
+        _generation += 1
+        _cache.clear()
+
 
 def lookup(raw_type: str, raw_value: str) -> dict[str, Any]:
     id_type: IdentifierType = parse_type(raw_type)
     value = normalise(id_type, raw_value)  # InvalidIdentifier -> 400 at the API layer
+    key = (_generation, id_type.value, value)
+    hit = _cache.get(key)
+    if hit and time.monotonic() - hit[0] < CACHE_TTL_SECONDS:
+        return hit[1]
+    answer = _answer(id_type, value)
+    with _lock:
+        if key[0] == _generation:
+            if len(_cache) >= CACHE_MAX:
+                _cache.clear()
+            _cache[key] = (time.monotonic(), answer)
+    return answer
+
+
+def _answer(id_type: IdentifierType, value: str) -> dict[str, Any]:
     owner = verified_owner(id_type, value)
     verified = owner is not None
     with get_engine().connect() as conn:

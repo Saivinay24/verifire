@@ -35,7 +35,11 @@ _PERMS = _permutations()
 _LEXICON = re.compile(
     r"police|cbi|customs|arrest|parcel|courier|fedex|kyc|pan card|aadhaar|otp|upi|qr|refund|"
     r"cashback|lottery|prize|loan|electricity|bijli|power cut|disconnect|task|deposit|invest|"
-    r"profit|trading|video call|skype|fir|warrant|account block|band ho|paise kat|"
+    r"profit|trading|video call|skype|\bfir\b|warrant|account block|band ho|paise kat|"
+    r"customer care|helpline|anydesk|screen shar|card number|\bcvv\b|\bpin\b|link|winner|\bwon\b|"
+    r"lucky draw|processing fee|\bgst\b|telegram|youtube|work from home|part time|\bfine\b|"
+    r"blackmail|morphed|inaam|jurmana|naukri|"
+    r"इनाम|जुर्माना|नौकरी|ब्लैकमेल|कस्टमर केयर|"
     r"पुलिस|गिरफ्तार|पार्सल|कस्टम|केवाईसी|ओटीपी|बिजली|लोन|लॉटरी|इनाम|पैसे|खाता|धोखा|ठगी|वीडियो कॉल",
     re.IGNORECASE,
 )
