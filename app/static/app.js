@@ -28,9 +28,10 @@ const T = {
     file_complaint: "File a complaint on cybercrime.gov.in", done: "Done", not_sure: "Not sure, skip",
     map_title: "Scams reported nearby", map_sub: "Last 7 days, grouped by area. Never anyone's exact location.",
     dispute_title: "Ask for a review",
-    dispute_sub: "We mark the number as under review. It is never shown as a scam while we check.",
+    dispute_sub: "While we check, this number shows \"Be careful\" instead of \"Reported as a scam\". People still see how many reported it. A reviewer looks at your proof within 7 days and may email you. If they can't confirm it in time, or new people keep reporting the number, the warning comes back. Each number can ask once.",
     d_name: "Your name or business name", d_email: "Email for our reply", d_proof: "Proof, e.g. GST or shop licence number",
-    d_send: "Send for review", d_done: "Sent. This number is now under review.",
+    d_send: "Send for review", d_done: "Sent. This number is now under review for up to 7 days.",
+    d_locked: "This number was already reviewed recently, so it can't be disputed again for now.",
     expired_title: "Licence expired. Contact your provider.",
     expired_sub: "Your data is safe. The app works again as soon as a new licence is added.", retry: "Try again",
     when_now: "Just now", when_today: "Today", when_yday: "Yesterday", when_week: "This week",
@@ -41,7 +42,10 @@ const T = {
     no_reports_sub: "Nobody near you has reported this yet. Still never share an OTP or pay to receive money.",
     verified_sub: (o) => `Official number of ${o}.`,
     verified_advice: "Any caller can fake this number on your screen. If someone asks for money or an OTP, hang up and call back yourself.",
-    under_review: "Under review: the owner asked us to check these reports.",
+    under_review: (d) => `Under review until ${d}: someone says this is their number and asked us to check. Until then, don't pay or share codes.`,
+    dsp_overruled: "Someone asked us to review this number, but new people kept reporting it, so the warning is back.",
+    dsp_rejected: "A reviewer checked the owner's request and kept the warning.",
+    dsp_lapsed: "A review was asked for but not confirmed in time, so the warning is back.",
     f_reports: "Reports", f_people: "People", f_last: "Last reported", f_type: "Scam type", f_shown: "Shown as",
     invalid: "That doesn't look like a real number, UPI ID or link.",
     need_area: "Choose your area first.", need_value: "Add their number, UPI ID or link.",
@@ -127,9 +131,10 @@ const T = {
     file_complaint: "cybercrime.gov.in पर शिकायत दर्ज करें", done: "ठीक है", not_sure: "पता नहीं, आगे बढ़ें",
     map_title: "आसपास रिपोर्ट किए गए स्कैम", map_sub: "पिछले 7 दिन, इलाके के हिसाब से। किसी की सटीक जगह कभी नहीं।",
     dispute_title: "जांच के लिए कहें",
-    dispute_sub: "हम नंबर को जांच में रखेंगे। जांच के दौरान इसे स्कैम नहीं दिखाया जाएगा।",
+    dispute_sub: "जांच के दौरान यह नंबर \"स्कैम\" की जगह \"सावधान रहें\" दिखेगा। लोग फिर भी देखेंगे कि कितनों ने रिपोर्ट की। समीक्षक 7 दिन में आपका सबूत देखेंगे और ईमेल कर सकते हैं। अगर समय पर पुष्टि न हो, या नए लोग रिपोर्ट करते रहें, तो चेतावनी वापस आ जाएगी। हर नंबर एक बार ही जांच मांग सकता है।",
     d_name: "आपका या बिज़नेस का नाम", d_email: "जवाब के लिए ईमेल", d_proof: "सबूत, जैसे GST या दुकान लाइसेंस नंबर",
-    d_send: "जांच के लिए भेजें", d_done: "भेज दिया। यह नंबर अब जांच में है।",
+    d_send: "जांच के लिए भेजें", d_done: "भेज दिया। यह नंबर अब 7 दिन तक जांच में है।",
+    d_locked: "इस नंबर की हाल ही में जांच हो चुकी है, इसलिए अभी दोबारा नहीं मांगी जा सकती।",
     expired_title: "लाइसेंस समाप्त हो गया। अपने प्रदाता से संपर्क करें।",
     expired_sub: "आपका डेटा सुरक्षित है। नया लाइसेंस जुड़ते ही ऐप फिर से चलेगा।", retry: "फिर कोशिश करें",
     when_now: "अभी", when_today: "आज", when_yday: "कल", when_week: "इस हफ्ते",
@@ -140,7 +145,10 @@ const T = {
     no_reports_sub: "अभी तक आपके पास किसी ने इसकी रिपोर्ट नहीं की। फिर भी OTP कभी न बताएं, पैसे पाने के लिए भुगतान न करें।",
     verified_sub: (o) => `${o} का आधिकारिक नंबर।`,
     verified_advice: "कोई भी कॉलर आपकी स्क्रीन पर यही नंबर दिखा सकता है। अगर कोई पैसे या OTP मांगे, फोन काटें और खुद वापस कॉल करें।",
-    under_review: "जांच जारी: मालिक ने इन रिपोर्टों की जांच के लिए कहा है।",
+    under_review: (d) => `${d} तक जांच जारी: किसी ने कहा है कि यह उनका नंबर है। तब तक पैसे न दें, कोड न बताएं।`,
+    dsp_overruled: "किसी ने इस नंबर की जांच मांगी, पर नए लोग रिपोर्ट करते रहे, इसलिए चेतावनी वापस है।",
+    dsp_rejected: "समीक्षक ने मालिक का अनुरोध देखा और चेतावनी बनाए रखी।",
+    dsp_lapsed: "जांच मांगी गई थी पर समय पर पुष्टि नहीं हुई, इसलिए चेतावनी वापस है।",
     f_reports: "रिपोर्ट", f_people: "लोग", f_last: "आखिरी रिपोर्ट", f_type: "स्कैम का प्रकार", f_shown: "ऐसे दिखाया गया",
     invalid: "यह सही नंबर, UPI ID या लिंक नहीं लगता।",
     need_area: "पहले अपना इलाका चुनें।", need_value: "उनका नंबर, UPI ID या लिंक डालें।",
@@ -481,7 +489,13 @@ function showResult(r) {
   if (v === "VERIFIED_BUSINESS") sub = t("verified_sub", r.verified_owner || "");
   else if (v === "NO_REPORTS") sub = t("no_reports_sub");
   else sub = t("reported_by", r.distinct_reporters);
-  if (r.challenged) sub += " " + t("under_review");
+  const dsp = r.dispute;
+  if (r.challenged) {
+    const until = dsp?.closes_at ? new Date(dsp.closes_at).toLocaleDateString(lang === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "short" }) : "";
+    sub += (/[.।]$/.test(sub) ? " " : ". ") + t("under_review", until);
+  } else if (dsp && r.report_count > 0 && ["overruled", "rejected", "lapsed"].includes(dsp.status)) {
+    sub += (/[.।]$/.test(sub) ? " " : ". ") + t("dsp_" + dsp.status);
+  }
   $("#verdictSummary").textContent = sub;
 
   const facts = $("#facts"); facts.replaceChildren();
@@ -501,7 +515,9 @@ function showResult(r) {
   }
   $("#advice").textContent = v === "VERIFIED_BUSINESS" ? t("verified_advice")
     : r.report_count > 0 ? typeInfo(r.scam_type).advice[lang] : "";
-  $("#disputeLink").hidden = v === "VERIFIED_BUSINESS" || r.report_count === 0 || r.challenged;
+  // Each number can ask once: after a review that ended against the claim, the link goes away.
+  const locked = ["overruled", "rejected", "lapsed"].includes(r.dispute?.status);
+  $("#disputeLink").hidden = v === "VERIFIED_BUSINESS" || r.report_count === 0 || r.challenged || locked;
   $("#reportThis").hidden = v === "VERIFIED_BUSINESS";
   openSheet("#resultSheet");
 }
@@ -742,7 +758,8 @@ $("#disputeForm").addEventListener("submit", async (e) => {
       claimant_name: $("#dName").value.trim(), contact_email: $("#dEmail").value.trim(), proof_note: $("#dProof").value.trim(),
     }) });
     closeSheet("#disputeSheet"); $("#disputeForm").reset(); toast(t("d_done"));
-  } catch (ex) { if (!(ex instanceof LicenceExpired)) toast(ex.message); }
+    lookupValue(lastChecked.kind, lastChecked.value); // show the number as it now looks to everyone
+  } catch (ex) { if (!(ex instanceof LicenceExpired)) toast(ex.status === 409 ? t("d_locked") : ex.message); }
 });
 
 // ---------------- Alerts and map ----------------

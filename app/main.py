@@ -76,6 +76,13 @@ def create_app() -> FastAPI:
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
 
+    @app.get("/review", include_in_schema=False)
+    def review_page() -> FileResponse:
+        """The dispute reviewer's page. Harmless without REVIEW_KEY: every call it makes needs the key."""
+        return FileResponse(
+            STATIC_DIR / "review.html", headers={"Cache-Control": "no-cache", "X-Robots-Tag": "noindex"}
+        )
+
     @app.get("/manifest.webmanifest", include_in_schema=False)
     def manifest() -> FileResponse:
         return FileResponse(STATIC_DIR / "manifest.webmanifest", media_type="application/manifest+json")

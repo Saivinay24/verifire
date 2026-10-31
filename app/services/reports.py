@@ -19,6 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from app.config import get_settings
 from app.db import get_engine
 from app.domain import constants as C
+from app.domain import disputes as D
 from app.domain import trust
 from app.domain.areas import AREAS_BY_PINCODE
 from app.domain.catalog import canonical_channel, canonical_scam_type, verified_owner
@@ -211,7 +212,7 @@ def overruled(dispute: RowMapping, rows: Sequence[RowMapping], facts: Sequence[t
     if not trust.established(fresh, C.KNOWN_MIN_SCORE):
         return False
     counted = [rows[i]["received_at"] for i in after if facts[i].id in fresh.alert_ids]
-    return len(counted) >= 2 and max(counted) - min(counted) >= C.DISPUTE_OVERRULE_SPREAD
+    return len(counted) >= 2 and max(counted) - min(counted) >= D.DISPUTE_OVERRULE_SPREAD
 
 
 def recompute(conn: Connection, identifier_id: int, *, verified: bool) -> trust.Verdict:

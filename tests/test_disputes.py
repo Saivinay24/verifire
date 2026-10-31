@@ -161,7 +161,12 @@ def test_an_undecided_dispute_lapses_at_its_deadline(client: TestClient) -> None
 
 
 def test_reviewing_is_off_without_a_key(client: TestClient) -> None:
-    assert client.get("/review/disputes").status_code == 404
+    settings = get_settings()
+    old, settings.review_key = settings.review_key, ""
+    try:
+        assert client.get("/review/disputes").status_code == 404
+    finally:
+        settings.review_key = old
 
 
 def test_reviewer_upholds_a_wrongly_reported_owner(client: TestClient, reviewer: None) -> None:

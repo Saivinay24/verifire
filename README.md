@@ -118,7 +118,8 @@ The seven addresses from Appendix A have no login, as the brief asks.
 | `GET /city?pincode=&days=` | The app's city sheet: hot areas, trending types, known scam numbers, recent feed (default 7 days). Extra, not in Appendix A |
 | `GET /stats?days=` | Live totals and breakdowns, counted after the trust rules (default 30 days). Extra, not in Appendix A |
 | `POST /admin/reset` | Deletes every report |
-| `POST /challenges` | A business disputes a number (bonus) |
+| `POST /challenges` | A business disputes a number (bonus). 409 if that number's last dispute ended against the claim in the past 90 days; 429 after 20 disputes from one network in a day |
+| `GET /review/disputes`, `POST /review/disputes/{id}` | The reviewer's queue and decisions (`upheld` or `rejected`), behind the `REVIEW_KEY` header. Off when `REVIEW_KEY` is unset. Extra, not in Appendix A |
 | `GET /license`, `POST /license` | Show or replace the licence |
 
 **Every way of typing a number gives the same answer.** For example, `+91 98765 43210`, `098765-43210` and `9876543210` are all one number. The same holds for UPI ids in any letter case, links with or without `https://` and `www`, and sender ids like `VM-HDFCBK` and `HDFCBK`.
@@ -159,7 +160,25 @@ We count **independent people, weighted by how much proof they gave**, not raw r
 - A number is **Known scam** when there is no pile-on, at least **3 groups**, at least **2 of them described** what happened or showed proof, and the **score is 1.7 or more**.
 - Why 1.7: three real victims with blank notes who each lost money score 3 × 0.575 = 1.725. Three blank clicks score 1.5.
 - Verified business and helpline numbers always say **Verified business**.
-- A disputed number is never Known scam while it is under review.
+- A disputed number is never Known scam while it is under review. Every review ends; see "Disputes" below.
+
+### Disputes: protect a wrongly reported owner, never shield a scammer
+
+The brief's rule (a disputed number is never Known scam while under review) would, on its own, let a scammer dispute every number he uses and turn each red warning amber for good. So every dispute ends, and each way out is decided by something the claimant does not control:
+
+| Outcome | When | What people then see |
+|---|---|---|
+| **Upheld** | A reviewer accepts the owner's proof | The reports so far are set aside; the number starts fresh, and new reports count as usual |
+| **Rejected** | A reviewer does not | The normal verdict comes back |
+| **Overruled** | New people on new networks, none of whom reported before the dispute, keep reporting it, clear the full Known scam bar on their own, and are spread over at least 6 hours | The normal verdict comes back |
+| **Lapsed** | Nobody decided within 7 days | The normal verdict comes back |
+
+- After a dispute is rejected, overruled or lapsed, that number cannot be disputed again for 90 days.
+- One network can open at most 20 disputes a day. The reviewer sees how many numbers the same contact or network has disputed, so one scammer disputing his whole list shows up as one pattern.
+- While a dispute is open, the reply keeps the evidence (how many people, what scam, when) and shows the review deadline, so people are still warned. Only the strongest label waits.
+- Times are the server's receive times, which no client can set. A burst of reports fired right after a dispute (the harassment pattern) cannot break it; an active scam keeps producing new victims over hours.
+- Who reviews: whoever runs VeriFire (for us, the team; in production, the operator or a partner bank or telecom). The page is at `/review`. It shows the owner's proof and the counted evidence, never who reported.
+- These 5 numbers live in `app/domain/disputes.py`, apart from the 70 trust constants, which disputes do not change. `tests/test_disputes.py` has one test per case above, and each rule was checked by removing it and watching its test fail.
 
 **Why a fake-reported number is not labelled a scam:** the lookup reply only ever shows counts and evidence. Because of the steps above, `distinct_reporters` counts independent people, so 22 fake accounts show as 1.
 

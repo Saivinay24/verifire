@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any
 
 from app.db import get_engine
-from app.domain import constants as C
+from app.domain import disputes as D
 from app.domain.catalog import verified_owner
 from app.domain.identifiers import mask, normalise, parse_type
 from app.domain.timefmt import fmt
@@ -72,12 +72,12 @@ def challenge(payload: dict[str, Any], network: str) -> dict[str, str]:
             last is not None
             and last["status"] in CLOSED_LOCKING
             and last["decided_at"] is not None
-            and store.db_now(conn) - last["decided_at"] < C.DISPUTE_LOCK
+            and store.db_now(conn) - last["decided_at"] < D.DISPUTE_LOCK
         ):
             raise AlreadyReviewed(last["status"])
         if (
-            store.count_network_challenges(conn, ip_key, C.DISPUTE_NETWORK_WINDOW)
-            >= C.DISPUTE_PER_NETWORK_DAY
+            store.count_network_challenges(conn, ip_key, D.DISPUTE_NETWORK_WINDOW)
+            >= D.DISPUTE_PER_NETWORK_DAY
         ):
             raise TooMany
         challenge_id = "chl_" + uuid.uuid4().hex[:12]
@@ -93,7 +93,7 @@ def challenge(payload: dict[str, Any], network: str) -> dict[str, str]:
                 "ip_key": ip_key,
                 "claimant_key": keyed_hash("dispute-contact", email.lower()) if email else None,
             },
-            C.DISPUTE_REVIEW_WINDOW,
+            D.DISPUTE_REVIEW_WINDOW,
         )
         recompute(conn, ident["id"], verified=ident["verified"])
     return {"challenge_id": challenge_id, "status": UNDER_REVIEW}
