@@ -1,0 +1,9 @@
+{
+  "name": "Scam Check",
+  "short_name": "Scam Check",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3F6FA",
+  "theme_color": "#F3F6FA",
+  "icons": [{ "src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

@@ -15,7 +15,8 @@ EVIDENCE_LIMIT = 20
 def lookup(raw_type: str, raw_value: str) -> dict[str, Any]:
     id_type: IdentifierType = parse_type(raw_type)
     value = normalise(id_type, raw_value)  # InvalidIdentifier -> 400 at the API layer
-    verified = verified_owner(id_type, value) is not None
+    owner = verified_owner(id_type, value)
+    verified = owner is not None
     with get_engine().connect() as conn:
         row = store.get_identifier(conn, id_type, value)
         evidence = (
@@ -33,6 +34,8 @@ def lookup(raw_type: str, raw_value: str) -> dict[str, Any]:
             "display_value": value if verified else mask(id_type, value),
             "evidence": [],
             "challenged": bool(row and row["challenged"]),
+            "verified_owner": owner,
+            "summary": summary(Verdict.VERIFIED_BUSINESS if verified else Verdict.NO_REPORTS, 0),
         }
     return {
         "verdict": row["verdict"],
@@ -54,6 +57,7 @@ def lookup(raw_type: str, raw_value: str) -> dict[str, Any]:
         "challenged": row["challenged"],
         # Extra fields are allowed by the brief; these explain the verdict without exposing anyone.
         "trust_score": row["trust_score"],
+        "verified_owner": owner,
         "summary": summary(row["verdict"], row["distinct_reporters"]),
     }
 

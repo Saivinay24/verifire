@@ -6,10 +6,11 @@ Routers only translate HTTP to service calls and errors to the `{"error": ...}` 
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Query
+from fastapi import APIRouter, Body, Query, Request
 from fastapi.responses import JSONResponse
 
 from app.db import get_engine
+from app.domain.areas import AREAS
 from app.domain.identifiers import InvalidIdentifier
 from app.repos import store
 from app.services import areas, challenges, lookup, reports
@@ -25,10 +26,24 @@ def now() -> datetime:
     return datetime.now(UTC)
 
 
+def _connection_prefix(request: Request) -> str:
+    """The /24 (IPv4) or /48 (IPv6) a report came from, for reports sent by our own app.
+
+    The test tool sends ip_prefix itself (brief, rule 2). Only the prefix is kept, and it is hashed
+    before storage like every other reporter signal.
+    """
+    host = request.client.host if request.client else ""
+    if ":" in host:
+        return ":".join(host.split(":")[:3])
+    return ".".join(host.split(".")[:3])
+
+
 @router.post("/reports", status_code=201)
-def post_report(payload: Annotated[Any, Body()]) -> Any:
+def post_report(request: Request, payload: Annotated[Any, Body()]) -> Any:
     if not isinstance(payload, dict):
         return error(400, "body must be a JSON object")
+    if not payload.get("ip_prefix"):
+        payload = {**payload, "ip_prefix": _connection_prefix(request)}
     try:
         accepted = reports.submit(payload, now())
     except reports.ReportRejected as exc:
@@ -74,6 +89,12 @@ def get_alerts(pincode: str = Query("")) -> Any:
         return areas.area_alerts(pincode, now())
     except areas.UnknownArea as exc:
         return error(400, str(exc))
+
+
+@router.get("/areas")
+def get_areas() -> dict[str, Any]:
+    """The supported areas (Appendix B), for the app's area picker and on-device "near me"."""
+    return {"areas": [a._asdict() for a in AREAS]}
 
 
 @router.post("/admin/reset")

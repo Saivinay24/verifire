@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F3F6FA">
+  <title>Scam Check</title>
+  <meta name="description" content="Check a phone number, UPI ID or link before you trust it. Report scams anonymously.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <!-- Home: two jobs only. Check (composer, thumb zone) or report. -->
+  <main class="home" id="home">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" aria-hidden="true"><use href="#i-shield"/></svg>
+        <span data-t="brand">Scam Check</span>
+      </div>
+      <button class="lang glass" id="lang" type="button" aria-label="Change language">
+        <span data-lang="en">EN</span><span data-lang="hi">हिं</span>
+      </button>
+    </header>
+
+    <section class="greeting">
+      <h1 data-t="hello">Check before you trust.</h1>
+      <p data-t="hello_sub">Paste a number, UPI ID or link. See if people near you reported it.</p>
+    </section>
+
+    <button class="alert-banner glass" id="alertBanner" type="button" hidden>
+      <span class="pulse" aria-hidden="true"></span>
+      <span class="alert-text" id="alertText"></span>
+      <svg class="chev" aria-hidden="true"><use href="#i-chevron"/></svg>
+    </button>
+
+    <div class="dock">
+      <div class="actions">
+        <button class="action action-report" id="openReport" type="button">
+          <svg aria-hidden="true"><use href="#i-flag"/></svg>
+          <span data-t="report_cta">Report a scam</span>
+        </button>
+        <button class="action action-near glass" id="openMap" type="button">
+          <svg aria-hidden="true"><use href="#i-pin"/></svg>
+          <span data-t="near_cta">Near me</span>
+        </button>
+      </div>
+
+      <form class="composer glass" id="checkForm" autocomplete="off">
+        <span class="kind-chip" id="kindChip" hidden></span>
+        <label class="sr-only" for="checkInput" data-t="check_label">Number, UPI ID or link</label>
+        <input id="checkInput" inputmode="text" enterkeyhint="search" spellcheck="false"
+               data-tp="check_placeholder" placeholder="Paste a number, UPI ID or link">
+        <button class="icon-btn" id="pasteBtn" type="button" aria-label="Paste">
+          <svg aria-hidden="true"><use href="#i-paste"/></svg>
+        </button>
+        <button class="send" id="checkBtn" type="submit" aria-label="Check">
+          <svg aria-hidden="true"><use href="#i-arrow-up"/></svg>
+        </button>
+      </form>
+      <p class="fineprint" data-t="fineprint">Anonymous. We save only the area, never who you are.</p>
+    </div>
+  </main>
+
+  <!-- Result sheet -->
+  <div class="scrim" id="scrim" hidden></div>
+  <section class="sheet glass-strong" id="resultSheet" role="dialog" aria-modal="true" aria-labelledby="verdictTitle" hidden>
+    <div class="grabber" aria-hidden="true"></div>
+    <div class="verdict" id="verdictCard">
+      <div class="verdict-icon"><svg aria-hidden="true"><use id="verdictIconUse" href="#i-shield"/></svg></div>
+      <div class="verdict-body">
+        <h2 id="verdictTitle"></h2>
+        <p id="verdictSummary"></p>
+      </div>
+    </div>
+    <dl class="facts" id="facts"></dl>
+    <p class="advice" id="advice"></p>
+    <div class="sheet-actions">
+      <a class="pill pill-strong" id="call1930" href="tel:1930">
+        <svg aria-hidden="true"><use href="#i-phone"/></svg><span data-t="call1930">Lost money? Call 1930</span>
+      </a>
+      <button class="pill" id="reportThis" type="button">
+        <svg aria-hidden="true"><use href="#i-flag"/></svg><span data-t="report_this">Report this</span>
+      </button>
+    </div>
+    <button class="link" id="disputeLink" type="button" data-t="dispute_link">Is this your business? Ask for a review</button>
+  </section>
+
+  <!-- Report flow: a real three-step sequence -->
+  <section class="flow" id="reportFlow" role="dialog" aria-modal="true" aria-labelledby="stepTitle" hidden>
+    <header class="flow-bar">
+      <button class="icon-btn glass" id="flowBack" type="button" aria-label="Back">
+        <svg aria-hidden="true"><use href="#i-back"/></svg>
+      </button>
+      <div class="steps" aria-hidden="true"><i></i><i></i><i></i></div>
+      <button class="icon-btn glass" id="flowClose" type="button" aria-label="Close">
+        <svg aria-hidden="true"><use href="#i-close"/></svg>
+      </button>
+    </header>
+    <h2 class="step-title" id="stepTitle"></h2>
+    <p class="step-sub" id="stepSub"></p>
+
+    <div class="step" data-step="1">
+      <div class="tiles tiles-3" id="channelTiles"></div>
+    </div>
+    <div class="step" data-step="2">
+      <div class="tiles tiles-3" id="typeTiles"></div>
+      <button class="skip" id="skipType" type="button" data-t="not_sure">Not sure, skip</button>
+    </div>
+    <div class="step" data-step="3">
+      <form class="report-form" id="reportForm" autocomplete="off">
+        <div class="field glass">
+          <span class="kind-chip" id="reportKind" hidden></span>
+          <label class="sr-only" for="reportValue" data-t="value_label">Their number, UPI ID or link</label>
+          <input id="reportValue" spellcheck="false" data-tp="value_placeholder" placeholder="Their number, UPI ID or link">
+          <button class="icon-btn" id="reportPaste" type="button" aria-label="Paste">
+            <svg aria-hidden="true"><use href="#i-paste"/></svg>
+          </button>
+        </div>
+        <p class="field-error" id="valueError" hidden></p>
+
+        <div class="group">
+          <span class="group-label" data-t="when">When?</span>
+          <div class="segmented glass" id="whenSeg" role="radiogroup"></div>
+        </div>
+
+        <div class="group">
+          <span class="group-label" data-t="where">Your area</span>
+          <div class="area-row">
+            <button class="pill" id="areaBtn" type="button">
+              <svg aria-hidden="true"><use href="#i-pin"/></svg><span id="areaLabel" data-t="choose_area">Choose area</span>
+            </button>
+            <button class="pill" id="locateBtn" type="button">
+              <svg aria-hidden="true"><use href="#i-locate"/></svg><span data-t="use_location">Near me</span>
+            </button>
+          </div>
+        </div>
+
+        <details class="note-box">
+          <summary data-t="add_note">Add what happened (optional)</summary>
+          <label class="sr-only" for="reportNote" data-t="add_note">Add what happened</label>
+          <textarea id="reportNote" rows="3" maxlength="600" data-tp="note_placeholder"
+                    placeholder="In your own words. Don't write your name or number."></textarea>
+          <div class="field glass money">
+            <span class="rupee">₹</span>
+            <label class="sr-only" for="lostAmount" data-t="lost_money">Money lost (optional)</label>
+            <input id="lostAmount" inputmode="numeric" pattern="[0-9]*" data-tp="lost_money" placeholder="Money lost (optional)">
+          </div>
+        </details>
+
+        <button class="primary" id="sendReport" type="submit" data-t="send">Send report</button>
+      </form>
+    </div>
+
+    <div class="step step-done" data-step="4">
+      <div class="done-mark"><svg aria-hidden="true"><use href="#i-check"/></svg></div>
+      <h2 data-t="done_title">Report sent</h2>
+      <p data-t="done_sub">Thank you. It helps the next person spot this scam.</p>
+      <a class="pill pill-strong" href="tel:1930"><svg aria-hidden="true"><use href="#i-phone"/></svg><span data-t="call1930">Lost money? Call 1930</span></a>
+      <a class="pill" href="https://cybercrime.gov.in" target="_blank" rel="noopener"><span data-t="file_complaint">File a complaint on cybercrime.gov.in</span></a>
+      <button class="primary" id="doneBtn" type="button" data-t="done">Done</button>
+    </div>
+  </section>
+
+  <!-- Area picker -->
+  <section class="sheet glass-strong" id="areaSheet" role="dialog" aria-modal="true" aria-labelledby="areaTitle" hidden>
+    <div class="grabber" aria-hidden="true"></div>
+    <h2 id="areaTitle" data-t="choose_area">Choose area</h2>
+    <div class="area-list" id="areaList"></div>
+  </section>
+
+  <!-- Near me: map and alerts -->
+  <section class="flow" id="mapView" role="dialog" aria-modal="true" aria-labelledby="mapTitle" hidden>
+    <header class="flow-bar">
+      <button class="icon-btn glass" id="mapBack" type="button" aria-label="Back">
+        <svg aria-hidden="true"><use href="#i-back"/></svg>
+      </button>
+      <button class="pill glass" id="mapArea" type="button">
+        <svg aria-hidden="true"><use href="#i-pin"/></svg><span id="mapAreaLabel"></span>
+      </button>
+      <span class="spacer"></span>
+    </header>
+    <h2 class="step-title" id="mapTitle" data-t="map_title">Scams reported nearby</h2>
+    <p class="step-sub" data-t="map_sub">Last 7 days, grouped by area. Never anyone's exact location.</p>
+    <div class="map-card glass"><div id="map" role="img" aria-label="Map of scam reports by area"></div></div>
+    <div id="alertList" class="alert-list"></div>
+    <div id="clusterList" class="cluster-list"></div>
+  </section>
+
+  <!-- Dispute -->
+  <section class="sheet glass-strong" id="disputeSheet" role="dialog" aria-modal="true" aria-labelledby="disputeTitle" hidden>
+    <div class="grabber" aria-hidden="true"></div>
+    <h2 id="disputeTitle" data-t="dispute_title">Ask for a review</h2>
+    <p class="step-sub" data-t="dispute_sub">We mark the number as under review. It is never shown as a scam while we check.</p>
+    <form class="report-form" id="disputeForm">
+      <div class="field glass"><input id="dName" required data-tp="d_name" placeholder="Business name"></div>
+      <div class="field glass"><input id="dEmail" type="email" required data-tp="d_email" placeholder="Email for our reply"></div>
+      <div class="field glass"><textarea id="dProof" rows="3" data-tp="d_proof" placeholder="Proof, e.g. GST or shop licence number"></textarea></div>
+      <button class="primary" type="submit" data-t="d_send">Send for review</button>
+    </form>
+  </section>
+
+  <!-- Licence expired: blocks everything, keeps data -->
+  <section class="expired" id="expired" role="alertdialog" aria-labelledby="expiredTitle" hidden>
+    <div class="expired-card glass-strong">
+      <svg class="expired-icon" aria-hidden="true"><use href="#i-lock"/></svg>
+      <h2 id="expiredTitle" data-t="expired_title">Licence expired. Contact your provider.</h2>
+      <p data-t="expired_sub">Your data is safe. The app works again as soon as a new licence is added.</p>
+      <button class="pill" id="expiredRetry" type="button" data-t="retry">Try again</button>
+    </div>
+  </section>
+
+  <div class="toast glass-strong" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Icons: one consistent 24px line set, 1.8 stroke, round joins -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5V6l7-3z"/></symbol>
+      <symbol id="i-shield-x" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5V6l7-3z"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></symbol>
+      <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5V6l7-3z"/><path d="M8.8 12.2l2.2 2.2 4.3-4.6"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3l9-16z"/><path d="M12 10v4.5M12 17.3v.2"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+      <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0113 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+      <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></symbol>
+      <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5.5" y="5" width="13" height="16" rx="3"/><path d="M9 5V4a1 1 0 011-1h4a1 1 0 011 1v1M9 11h6M9 15h4"/></symbol>
+      <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V6M6.5 11.5L12 6l5.5 5.5"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="3"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 006 6l1.5-2 4 1.5v3a2 2 0 01-2 2A16 16 0 014.5 5.5a2 2 0 012-2z"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 5.5h14a2 2 0 012 2v7a2 2 0 01-2 2h-7l-4.5 3.5V16.5H5a2 2 0 01-2-2v-7a2 2 0 012-2z"/><path d="M8 10.5h8M8 13h5"/></symbol>
+      <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.5"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.5"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1.5"/><path d="M14 14h2.5v2.5H14zM18 18h2.5v2.5H18zM18 14h2.5M14 18v2.5"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.5 5.4 3.5 8.5s-1 5.9-3.5 8.5c-2.5-2.6-3.5-5.4-3.5-8.5s1-5.9 3.5-8.5z"/></symbol>
+      <symbol id="i-rupee" viewBox="0 0 24 24"><path d="M7 5h10M7 9h10M10 5c3.5 0 5 1.6 5 3.6S13.5 12.5 10 12.5H7.5l7 7"/></symbol>
+      <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></symbol>
+      <symbol id="i-police" viewBox="0 0 24 24"><path d="M4 8.5L12 4l8 4.5-1.5 2.5h-13L4 8.5z"/><path d="M6.5 11v1.5a5.5 5.5 0 0011 0V11"/><path d="M12 7.2v.1"/><path d="M8 20.5c1-1.6 2.4-2.4 4-2.4s3 .8 4 2.4"/></symbol>
+      <symbol id="i-idcard" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><circle cx="8.5" cy="11" r="2"/><path d="M5.8 15.8c.7-1.3 1.6-2 2.7-2s2 .7 2.7 2M13.5 10h4.5M13.5 13.5h3"/></symbol>
+      <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3.5 17.5l5.5-5.5 3.5 3.5 7-7.5"/><path d="M15 8h4.5v4.5"/></symbol>
+      <symbol id="i-parcel" viewBox="0 0 24 24"><path d="M12 3.5l8 4v9l-8 4-8-4v-9l8-4z"/><path d="M4 7.5l8 4 8-4M12 11.5v9M8 5.5l8 4"/></symbol>
+      <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3.5" y="7.5" width="17" height="12" rx="2.5"/><path d="M9 7.5V5.8A1.3 1.3 0 0110.3 4.5h3.4A1.3 1.3 0 0115 5.8v1.7M3.5 12.5h17"/></symbol>
+      <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11.5" rx="2"/><path d="M3 9h18M12 9v11.5M12 9c-1.5-3.8-5.5-4.2-5.5-1.8C6.5 9 12 9 12 9zm0 0c1.5-3.8 5.5-4.2 5.5-1.8C17.5 9 12 9 12 9z"/></symbol>
+      <symbol id="i-loan" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M12 7.5v4.5M12 15v.2"/></symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.5 2.5L5.5 13.5h6l-1 8 8-11h-6l1-8z"/></symbol>
+      <symbol id="i-headset" viewBox="0 0 24 24"><path d="M4.5 14v-2a7.5 7.5 0 0115 0v2"/><rect x="3.5" y="13" width="4" height="6" rx="1.5"/><rect x="16.5" y="13" width="4" height="6" rx="1.5"/><path d="M18.5 19c0 1.5-2 2.5-5 2.5"/></symbol>
+      <symbol id="i-otp" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M7.5 12h.1M10.5 12h.1M13.5 12h.1M16.5 12h.1"/></symbol>
+      <symbol id="i-camera-off" viewBox="0 0 24 24"><rect x="3" y="7" width="12.5" height="10" rx="2.5"/><path d="M15.5 10.5l5-3v9l-5-3M3.5 4.5l16 15"/></symbol>
+    </defs>
+  </svg>
+
+  <script src="/static/app.js" type="module"></script>
+</body>
+</html>
