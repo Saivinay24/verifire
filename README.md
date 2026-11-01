@@ -6,7 +6,7 @@ Our answer to PS 03, Community Scam Map (CyberForge 2026 by Mitigata), from Team
 People report scam calls, SMS, UPI ids and links in a few taps, with no login. Anyone can look up a number before they answer or pay. The map shows where scams are rising, area by area. Fake reports from spammers, fake accounts or friends piling on never turn an honest number into a "Known scam".
 
 - **Live server:** https://scammap-huii.onrender.com (hosted in Singapore, so it answers fast from India)
-- **App:** the same address on any phone. It is a mobile website you can add to the home screen, in English and Hindi.
+- **App:** the same address on any phone or laptop. It is a mobile website you can add to the home screen, in English and Hindi, with its own layout for laptop screens.
 - **Code:** https://github.com/Saivinay24/verifire
 - **Demo Video:** https://youtu.be/051OKV0sthI
 
@@ -181,7 +181,7 @@ The brief's rule (a disputed number is never Known scam while under review) woul
 - While a dispute is open, the reply keeps the evidence (how many people, what scam, when) and shows the review deadline, so people are still warned. Only the strongest label waits.
 - Times are the server's receive times, which no client can set. A burst of reports fired right after a dispute (the harassment pattern) cannot break it; an active scam keeps producing new victims over hours.
 - Who reviews: whoever runs VeriFire (for us, the team; in production, the operator or a partner bank or telecom). The page is at `/review`. It shows the owner's proof and the counted evidence, never who reported.
-- These 5 numbers live in `app/domain/disputes.py`, apart from the 70 trust constants, which disputes do not change. `tests/test_disputes.py` has one test per case above, and each rule was checked by removing it and watching its test fail.
+- These 5 numbers live in `app/domain/disputes.py`, apart from the 72 trust constants, which disputes do not change. `tests/test_disputes.py` has one test per case above, and each rule was checked by removing it and watching its test fail.
 
 **Why a fake-reported number is not labelled a scam:** the lookup reply only ever shows counts and evidence. Because of the steps above, `distinct_reporters` counts independent people, so 22 fake accounts show as 1.
 
@@ -293,6 +293,8 @@ Live server, held-out seeds 9101 to 9110 (about 6,600 reports):
 
 There is also a scenario catalogue (`judge/catalog.py`) with 65 stories, from "10 friends with 2 accounts each" to "a scammer floods their own number". Results: [docs/SCENARIOS.md](docs/SCENARIOS.md).
 
+**Blind evaluation.** An outside agent that saw only the brief (never our code or tests) wrote its own attack suite and ran it against the server. Every named trick, alone or combined, was stopped in 160 of 160 attack runs, and none of those fakes set off an alert. The failures it found were traced to their exact cause in the engine and fixed; the few cases we chose not to change are listed under Known limits.
+
 ## Known limits
 
 We state these rather than hide them.
@@ -300,6 +302,8 @@ We state these rather than hide them.
 - **Three victims with blank notes and little proof** stay Suspicious. This is deliberate: the bar is 1.7, and three blank clicks must never pass.
 - **Friends who each write their own convincing scam story** can look like real victims. No report-only system can tell them apart. The defences are the dispute feature and the verified list.
 - **In a fast viral wave**, some real victims sharing one connection within 15 minutes are merged. About 24 of 30 are counted.
+- **Many real victims with only blank notes** (no words, no screenshot, no loss) stay Suspicious, because that is exactly the shape of the "40 friends" attack. And victims who all write the same few short Hindi or Hinglish phrases can be merged as copies; truly different Hindi notes are counted normally.
+- **Say it on iPhone needs Safari.** Apple lets only Safari use the speech engine, so in Chrome, Firefox or Edge on iPhone the button opens the note with the keyboard up and points to the keyboard's mic key, which works in English and Hindi.
 - **The constants were tuned on our own simulator**, because no public, labelled set of Indian scam reports exists. The held-out seeds were never used for tuning.
 
 ## Repository layout
@@ -315,7 +319,7 @@ migrations/   Alembic database migrations
 licences/     the bootstrap and long demo licences (public, signed)
 scripts/      mint_licence.py (vendor laptop only), demo_licence.sh, keepalive.py
 judge/        test world, grader, scenario catalogue, privacy audit, licence demo, demo data
-tests/        101 unit and API contract tests
+tests/        110 unit and API contract tests
 evidence/     saved results of every live run
 docs/         trust parameters and trust engine walk-through
 ```
