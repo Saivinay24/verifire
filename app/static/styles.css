@@ -608,7 +608,7 @@ div.msg-id { cursor: default; }
   :root { --gutter: 32px; }
 
   /* Home */
-  .home { max-width: 1180px; padding-top: 20px; }
+  .home { max-width: none; padding: 20px 44px 0; }  /* bar sits near the window edges; the hero stays centred */
   .home > :not(.topbar) { width: 100%; max-width: 680px; margin-inline: auto; }
   .topbar { height: 52px; }
   .greeting { margin-top: auto; margin-bottom: 28px; padding-top: 48px; }
