@@ -30,6 +30,17 @@ There is also one inline literal in the trust engine: the 0.7 weight on method w
 
 Honest summary: **72 tunable numbers** in one file, plus 21 fixed engineering and PRD values elsewhere.
 
+## What "the harness" is
+
+Our harness is a set of test programs in `scammap/judge/` that play judge against the server. They never import our app code: they talk to the server over HTTP, exactly as the judges will.
+
+- **The test world (`judge/world.py`).** Built only from the PRD. For each seed (a random number that changes every person, number, time and note) it builds one mixed judging day: real scams reported by 3 to 20 independent people over days (a quarter of them as fast viral waves, about 15% of victims picking a slightly wrong scam type), numbers with only 1 or 2 reports, verified bank numbers, real people sharing mobile-carrier connections, every trick from the brief at sizes above and below the stated ones (40 friends, 22 accounts on one Wi-Fi, one person 6 times, 10 friends with 2 accounts), and areas set up to test spikes, new scam types and fake alerts. Every number carries the answer the PRD demands.
+- **The grader (`judge/run.py`).** Loads that world into a server and grades it row by row against the brief's scoring table. A row passes only if every check passed on every seed. It also measures lookup speed.
+- **The scenario catalogue (`judge/catalog.py`).** 65 single stories (one attack, one kind of real victim, odd input, a licence event), each on an empty server and repeated over 20 seeds, so each result is a rate like 19/20. Output: docs/SCENARIOS.md.
+- **The fast offline check (`judge/offline.py`).** Runs the same worlds straight through the trust rules in memory, in seconds instead of minutes. Used while tuning; the HTTP grader stays the source of truth.
+
+How a value was tuned: change it, run the offline check and the grader on the tuning seeds, read which real cases failed and which attacks got through, and repeat until both are clean. Then freeze everything and run seeds that were never used for tuning (9101 to 9110, 9301 to 9305). Two outside blind evaluations, written only from the PRD without seeing our harness, then checked we had not just fitted our own test world.
+
 ## How each value was chosen (the 7 sources)
 
 Every value comes from one of these. We say which one for each number below.
@@ -70,7 +81,7 @@ unmask      = verified OR (established at UNMASK_MIN_SCORE)
 |---|---|---|---|
 | NOTE_DUP_SIMILARITY | 0.7 | TUNE | Copy-paste with small edits scores above 0.8 Jaccard. Two real victims of the same script score 0.3 to 0.5. 0.7 separates them. |
 | NOTE_DUP_MIN_CHARS | 15 | TUNE | Short notes like "fraud call" collide by chance, so they are never linked. |
-| BURST_WINDOW | 60 min | TUNE | The window used to look for a brigade. |
+| BURST_WINDOW | 60 min | TUNE | The window used to look for a brigade. A viral wave of real victims spreads over about 2 hours in our test world, so a 60-minute window sees only part of it, while a brigade that files everything at once falls inside it. |
 | BURST_MIN_REPORTS | 8 | TUNE | Below 8 there is too little to call it coordinated. Also matches the pile-on minimum. |
 | BURST_MIN_DIVERSITY | 0.3 | TUNE | If under 30% of the notes in the burst are distinct, it is a lockstep brigade. Lowered from 0.5 after the blind evaluation: real waves whose notes come from a small template pool sat at about 0.46. A blank or short report with proof of harm is its own voice; a short note counts by its exact text. |
 | COORD_MAX_EVIDENCE_SHARE | 0.15 | TUNE | A coordinated burst has almost no screenshots or losses (under 15%). |
@@ -165,14 +176,14 @@ weight_sum = Σ over groups of min(GROUP_CAP, group total)
 | EVIDENCE_FACTOR_SLOPE | 0.25 | RES (0.65), then TUNE | Full evidence lifts the factor to 1.10. |
 | SYNC_REPORTED_IQR | 20 min | RES | All reports filed within about 20 minutes... |
 | SYNC_RATIO | 4.0 | RES | ...but claiming incidents spread over more than 4 times that: back-dated. |
-| SYNC_FACTOR | 0.7 | RES (0.50), then TUNE | |
+| SYNC_FACTOR | 0.7 | RES (0.50), then TUNE | Softened from the research value so this one tell on its own cannot sink a real campaign. A brigade usually trips two or more checks, and the factors multiply. |
 | STYLE_MIN_NOTES | 8 | TUNE | Length spread over fewer notes is noise. |
 | STYLE_MAX_CV | 0.06 | RES (0.18), then TUNE | Below every real sample (the 5th percentile was 0.07). Batch text sits around 0.03. |
-| STYLE_FACTOR | 0.8 | RES (0.55), then TUNE | |
-| COORDINATION_MIN_UNITS | 8 | TUNE | |
+| STYLE_FACTOR | 0.8 | RES (0.55), then TUNE | The mildest cut, because even note lengths are the weakest tell. Same reasoning as SYNC_FACTOR: one tell alone only nudges the score. |
+| COORDINATION_MIN_UNITS | 8 | TUNE | The same minimum crowd as the other wave checks (BURST_MIN_REPORTS, AREA_MIN_UNITS, PILE_ON_MIN_UNITS). With fewer people a share like "half merged" swings on one person. |
 | COORDINATION_MAX_SHARE | 0.5 | TUNE | A fast wave where most reporters merged into shared groups... |
 | COORDINATION_FACTOR | 0.5 | TUNE | ...means the rest are likely the same brigade. |
-| BLANK_MIN_UNITS | 8 | TUNE | |
+| BLANK_MIN_UNITS | 8 | TUNE | Same minimum crowd of 8, so 3 or 4 real victims who all left the note blank are never cut by this check. |
 | BLANK_MAX_SHARE | 0.5 | SIM + TUNE | Real victims leave about 25% of notes blank (simulator assumption). More than half blank is suspicious. |
 | BLANK_FACTOR | 0.5 | TUNE | Raised from 0.4 after the blind evaluation. The pile-on gate, not this factor, is what blocks a blank flood. |
 
@@ -270,9 +281,9 @@ distance  = haversine with EARTH_RADIUS_KM; area within radius_km (default 2) an
 | Map default days | 7 | PRD | Appendix A.4 |
 | Map default radius | 2 km | PRD | Appendix A.4 |
 | EARTH_RADIUS_KM | 6371 | Physics | Haversine distance. |
-| Spike window | 24 h | PRD | |
-| Spike baseline | 7 days before that (24 h to 8 d ago) | PRD | |
-| NEW_TYPE history | 30 days before the last 24 h (31 d to 24 h ago) | PRD | |
+| Spike window | 24 h | PRD | The brief's own definition of a spike: the last 24 hours. |
+| Spike baseline | 7 days before that (24 h to 8 d ago) | PRD | The brief compares against the daily average of the 7 days before. |
+| NEW_TYPE history | 30 days before the last 24 h (31 d to 24 h ago) | PRD | The brief: a scam type not seen in the area in the last 30 days. |
 | Severity CRIT | 10 or more | ENG | The PRD names the levels but not the cut-offs. |
 | Severity HIGH | 5 or more | ENG | Matches the spike minimum. |
 | pool_size / max_overflow | 5 / 10 | ENG | Render free Postgres connection limit. |
