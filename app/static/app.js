@@ -92,7 +92,7 @@ const T = {
     mic_denied: "Microphone is blocked. Allow it for this site in your browser settings, or use your keyboard's mic key.",
     mic_none: "No microphone found. Check your phone or computer allows the browser to use it.",
     mic_unavailable: "Voice typing isn't available in this browser. Use the mic key on your keyboard instead.",
-    mic_silent: "Didn't catch anything. Tap Say it and speak.", mic_fail: "Couldn't hear that. Use the mic key on your keyboard instead.",
+    mic_keyboard: "On this browser, tap the mic key on your keyboard to speak.", mic_silent: "Didn't catch anything. Tap Say it and speak.", mic_fail: "Couldn't hear that. Use the mic key on your keyboard instead.",
     prepare_complaint: "Prepare my complaint", c_title: "Your complaint, ready to send",
     c_sub: "Written from your report. Fill in the parts in [brackets]. It stays on your phone.",
     c_money: "Money taken? Call 1930 first. Banks can hold the money only if it is reported fast.",
@@ -231,7 +231,7 @@ const T = {
     mic_denied: "माइक्रोफ़ोन बंद है। ब्राउज़र सेटिंग में इस साइट के लिए अनुमति दें, या कीबोर्ड का माइक बटन इस्तेमाल करें।",
     mic_none: "माइक्रोफ़ोन नहीं मिला। देखें कि फ़ोन या कंप्यूटर ब्राउज़र को माइक की अनुमति देता है।",
     mic_unavailable: "इस ब्राउज़र में बोलकर लिखना नहीं चलता। कीबोर्ड का माइक बटन इस्तेमाल करें।",
-    mic_silent: "कुछ सुनाई नहीं दिया। बोलकर बताएं दबाएं और बोलें।", mic_fail: "सुनाई नहीं दिया। कीबोर्ड का माइक बटन इस्तेमाल करें।",
+    mic_keyboard: "इस ब्राउज़र में बोलने के लिए कीबोर्ड का माइक बटन दबाएं।", mic_silent: "कुछ सुनाई नहीं दिया। बोलकर बताएं दबाएं और बोलें।", mic_fail: "सुनाई नहीं दिया। कीबोर्ड का माइक बटन इस्तेमाल करें।",
     prepare_complaint: "मेरी शिकायत तैयार करें", c_title: "आपकी शिकायत, भेजने के लिए तैयार",
     c_sub: "आपकी रिपोर्ट से लिखी गई है। [ब्रैकेट] वाली जगह भरें। यह आपके फ़ोन पर ही रहती है।",
     c_money: "पैसे गए? पहले 1930 पर कॉल करें। जल्दी बताने पर ही बैंक पैसे रोक सकता है।",
@@ -867,6 +867,13 @@ const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null;
 let listening = false;        // the person's intent: true from the first tap until the stop tap
 let micText = "";             // what the note held plus every finished phrase
+// On iPhone only Safari may use the speech engine. Chrome, Firefox and Edge there expose it but it
+// never starts, so "Say it" opens the note with the keyboard up and points to the keyboard's mic key.
+let micBroken = /CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent);
+const touch = matchMedia("(pointer: coarse)").matches;
+function useKeyboardMic() {
+  micBroken = true; stopListening(); setNoteOpen(true); toast(t("mic_keyboard"));
+}
 $("#micBtn").hidden = !Recognition;
 function setNoteOpen(open) {
   $("#noteBody").hidden = !open; $("#noteToggle").setAttribute("aria-expanded", String(open));
@@ -888,11 +895,19 @@ function listenOnce() {
   const box = $("#reportNote"), r = new Recognition();
   rec = r;
   r.lang = lang === "hi" ? "hi-IN" : "en-IN"; r.interimResults = true; r.continuous = false;
-  let heard = "";
+  let heard = "", started = false;
+  r.onstart = () => { started = true; };
+  // A session that never starts on a phone means this browser can't use the speech engine.
+  if (touch) setTimeout(() => { if (!started && rec === r && listening) useKeyboardMic(); }, 4000);
+  const done = new Set();       // each finished result is written once, even if the browser repeats it
   r.onresult = (e) => {
-    const res = e.results[e.results.length - 1];
-    heard = res[0].transcript.trim();
-    if (res.isFinal && heard) { micText = (micText ? micText + " " : "") + heard; heard = ""; }
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const res = e.results[i], said = res[0].transcript.trim();
+      if (!res.isFinal) { interim = said; continue; }
+      if (said && !done.has(i)) { done.add(i); micText = (micText ? micText + " " : "") + said; }
+    }
+    heard = interim;
     box.value = (micText + (heard ? (micText ? " " : "") + heard : "")).slice(0, 600);
   };
   r.onerror = (e) => {
@@ -900,6 +915,7 @@ function listenOnce() {
     if (e.error === "no-speech" || e.error === "aborted") return;
     const msg = { "not-allowed": "mic_denied", "audio-capture": "mic_none", "service-not-allowed": "mic_unavailable",
       network: "mic_unavailable", "language-not-supported": "mic_unavailable" }[e.error];
+    if (touch && (e.error === "service-not-allowed" || e.error === "language-not-supported")) { useKeyboardMic(); return; }
     toast(t(msg || "mic_fail")); stopListening();
   };
   r.onend = () => {
@@ -908,10 +924,11 @@ function listenOnce() {
     if (rec === r) rec = null;
     if (listening) setTimeout(listenOnce, 150);
   };
-  try { r.start(); } catch { rec = null; toast(t("mic_fail")); stopListening(); }
+  try { r.start(); } catch { rec = null; if (touch) { useKeyboardMic(); return; } toast(t("mic_fail")); stopListening(); }
 }
 $("#micBtn").addEventListener("click", () => {
   if (listening) { stopListening(); return; }
+  if (micBroken) { useKeyboardMic(); return; }
   setNoteOpen(true);
   micText = $("#reportNote").value.trim();
   listening = true; showListening(true);
