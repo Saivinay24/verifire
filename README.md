@@ -7,7 +7,8 @@ People report scam calls, SMS, UPI ids and links in a few taps, with no login. A
 
 - **Live server:** https://scammap-huii.onrender.com (hosted in Singapore, so it answers fast from India)
 - **App:** the same address on any phone. It is a mobile website you can add to the home screen, in English and Hindi.
-- **Code:** https://github.com/Saivinay24/cyberforge-scammap
+- **Code:** https://github.com/Saivinay24/verifire
+- **Demo Video:** https://youtu.be/051OKV0sthI
 
 What the app does on top of the brief:
 - **Say it instead of typing.** The note box takes speech in English or Hindi, turned into text by the browser's speech service (in Chrome, that is Google's), never by our server. VeriFire stores only the note's fingerprint, never the words, the same as a typed note.
