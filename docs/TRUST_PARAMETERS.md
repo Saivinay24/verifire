@@ -41,10 +41,10 @@ Every value comes from one of these. We say which one for each number below.
 | **SIM** | Simulator assumption | An assumption we built into our test world (judge/world.py). It is not measured from real Indian scam data. |
 | **MEAS** | Measured on the simulator | Measured by running the code over thousands of simulated reports. |
 | **TUNE** | Hand-tuned on the harness | We started from a reasoned value, ran the randomised harness, looked at which cases failed, changed the value by hand and ran it again, until genuine cases passed AND every attack failed. Then all values were frozen and checked on holdout seeds we had never tuned on. There was no automated sweep. |
-| **RES** | Gemini deep research | Taken from the research report (research/DR_gemini.txt, section 4.3). "RES (x), then TUNE" means Gemini suggested x and the harness made us change it. |
+| **RES** | Initial research | Taken from our initial research report (section 4.3). "RES (x), then TUNE" means the research suggested x and the harness made us change it. |
 | **ENG** | Engineering default | A standard systems choice such as a cache size or a pool size. |
 
-**Where the 72 came from.** The first build had 56 constants. 28 came from Gemini's research (17 at Gemini's exact value and 11 changed after harness runs; one of the 17, STYLE_MAX_CV, was later tuned from 0.18 to 0.06, so 16 are exact today), 3 from the brief, and 25 were ours. The other 14 were added while tuning, each time the harness found an attack the engine missed: 5 coordinated-burst rules, then 8 (the pile-on gate, the "2 must describe it" rule and the alert group cap), then the account-switch and account-farm rules (one pile-on constant was removed at the same time). The last 2 (PILE_ON_MIN_HARM_SHARE, PROOF_MIN_TYPE_SHARE) came from a blind evaluation written without access to our harness; see below.
+**Where the 72 came from.** The first build had 56 constants. 28 came from our initial research (17 at the research's exact value and 11 changed after harness runs; one of the 17, STYLE_MAX_CV, was later tuned from 0.18 to 0.06, so 16 are exact today), 3 from the brief, and 25 were ours. The other 14 were added while tuning, each time the harness found an attack the engine missed: 5 coordinated-burst rules, then 8 (the pile-on gate, the "2 must describe it" rule and the alert group cap), then the account-switch and account-farm rules (one pile-on constant was removed at the same time). The last 2 (PILE_ON_MIN_HARM_SHARE, PROOF_MIN_TYPE_SHARE) came from a blind evaluation written without access to our harness; see below.
 
 We did not have a real labelled dataset of Indian scam reports, because none is public. So **TUNE** and **MEAS** values are tuned against our simulator, not against the real world. In the eval, say that plainly. The defence is that every value was then tested on held-out seeds (9101 to 9110 and 9301 to 9305) that were never used for tuning.
 
@@ -106,7 +106,7 @@ described group: any note >= NOTE_SHORT_CHARS, or a screenshot, or a loss > 0
 | NOTE_FULL_CHARS | 25 | RES | 25 or more characters is a real sentence. |
 | NOTE_WEIGHT_EMPTY | 0.5 | RES (0.35), then TUNE | The brief says a personal description counts more. A blank report is worth half. |
 | NOTE_WEIGHT_SHORT | 0.8 | RES (0.65), then TUNE | A short note sits between blank and full. |
-| NOTE_NOVELTY_PENALTY | 0.85 | RES | From Gemini research section 4.3 (novelty-weighted notes). |
+| NOTE_NOVELTY_PENALTY | 0.85 | RES | From the initial research, section 4.3 (novelty-weighted notes). |
 | NOTE_NOVELTY_FREE | 0.4 | MEAS | Real victims of the same script share phrases. Similarity under 0.4 is never penalised. |
 | NOTE_NOVELTY_FLOOR | 0.3 | TUNE | A copied note still keeps 30% of its value, so one honest person quoting another is not wiped out. |
 | EVIDENCE_SCREENSHOT | 0.15 | RES | Bonus for a screenshot. |

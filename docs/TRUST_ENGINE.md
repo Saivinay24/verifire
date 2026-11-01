@@ -27,7 +27,7 @@ reports for one number
   -> Verdict: 3 groups + 2 described + score >= 1.7
 ```
 
-- 70 named constants in one file (constants.py), each with a written reason.
+- 72 named constants in one file (constants.py), each with a written reason.
 - Pure function: same reports in, same verdict out. No randomness, no ML black box, every decision explainable.
 
 ---
@@ -272,7 +272,7 @@ Order of checks:
 ## Slide 12. Why this is different
 
 - It counts **independent people**, not reports.
-- **Explainable:** every verdict comes from 5 steps and 70 named numbers, with no black-box model.
+- **Explainable:** every verdict comes from 5 steps and 72 named numbers, with no black-box model.
 - **Privacy by design:** it judges notes without ever storing them.
 - **Bounded:** wave shape can move a score only between ×0.2 and ×1.1, so no single trick decides the verdict.
 - **Tested adversarially:** 65 attack and edge scenarios plus PRD-only holdout worlds, not tuned on the test set.
