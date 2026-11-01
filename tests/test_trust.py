@@ -161,10 +161,21 @@ def test_no_harm_flood_cannot_bury_real_victims() -> None:
 
 def test_reporters_who_cannot_agree_on_the_scam_never_confirm() -> None:
     types = ["otp-call", "lottery-prize", "job-offer", "sextortion"]
-    reports = [
-        facts(i, f"they asked for OTP and money transfer number {i}", scam_type=types[i % 4])
-        for i in range(12)
+    notes = [
+        "asked for the otp on call",
+        "won a car in a lucky draw, pay gst",
+        "part time youtube likes job",
+        "morphed photos, pay or we leak",
+        "bank kyc link sent by sms",
+        "parcel stuck, pay customs",
+        "loan app keeps calling my family",
+        "electricity will be cut tonight",
+        "fake amazon refund call",
+        "investment group on telegram",
+        "said I won lottery inaam",
+        "video call then blackmail money",
     ]
+    reports = [facts(i, notes[i], scam_type=types[i % 4]) for i in range(12)]
     assert "no_agreement_on_type" in trust.evaluate(reports).pile_on
 
 
@@ -207,3 +218,47 @@ def test_box_ticking_pile_on_with_no_words_never_confirms() -> None:
     result = trust.evaluate(reports)
     assert "mostly_blank" in result.pile_on and not result.explain["proof_counts"]
     assert verdict(reports) is trust.Verdict.SUSPICIOUS
+
+
+def test_scammer_flood_with_scattered_types_cannot_demote_a_real_scam() -> None:
+    # Blind eval 2, F2: 8 victims, then 30 accounts on one Wi-Fi rotating through every scam type.
+    stories = [
+        "pretended to be SBI, asked for the OTP, money gone",
+        "said my KYC expired and sent a link, I lost 5000",
+        "bank helpline caller wanted my card number and cvv",
+        "told me to install anydesk to stop a refund, account emptied",
+        "caller knew my account number and asked for the otp twice",
+        "fake customer care from the bank, said card is blocked",
+        "they asked me to share the pin to reverse a wrong transfer",
+        "message said account suspended, call this number, then otp",
+    ]
+    victims = [facts(i, stories[i]) for i in range(8)]
+    types = ["otp-call", "lottery-prize", "job-offer", "sextortion", "loan-app-harassment", "other"]
+    flood = [
+        facts(
+            20 + i,
+            "This number is a fraud. Report it!",
+            scam_type=types[i % 6],
+            ip="wifi",
+            hours_ago=0.2 + i * 0.01,
+        )
+        for i in range(30)
+    ]
+    assert verdict(victims) is trust.Verdict.KNOWN_SCAM
+    assert verdict(victims + flood) is trust.Verdict.KNOWN_SCAM
+
+
+def test_rescue_never_saves_a_brigade_that_collapses_into_few_groups() -> None:
+    # Blind eval 2, F3, the evaluator's own 68 request bodies: 40 friends + 22 accounts on one Wi-Fi +
+    # one person 6 times, on one shop. Those who wrote something collapse into a few shared groups.
+    import json
+    from pathlib import Path
+
+    from judge.offline import facts as from_body
+
+    bodies = json.loads((Path(__file__).parent / "data" / "blind2_stacked_attack.json").read_text())
+    shop = [b for b in bodies if "lakshmistores69" in b["identifier_value"].lower()]
+    assert len(shop) == 68
+    reports = [from_body(i, b) for i, b in enumerate(shop)]
+    assert "mostly_blank" in trust.evaluate(reports).pile_on
+    assert verdict(reports) is not trust.Verdict.KNOWN_SCAM

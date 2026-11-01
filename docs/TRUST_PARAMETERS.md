@@ -212,7 +212,9 @@ reviews_not_scams    written notes >= PILE_ON_MIN_NOTES AND review share >= PILE
 no_harm_shown        share with screenshot, loss or method words < PILE_ON_MIN_HARM_SHARE
 no_agreement_on_type top scam family share < PILE_ON_TYPE_SHARE
 rescue: if only mostly_blank / no_harm_shown fired, re-run on the people who said something
-        (for no_harm_shown: showed harm or wrote >= NOTE_FULL_CHARS)
+        (for no_harm_shown: showed harm or wrote >= NOTE_FULL_CHARS); kept only if those people
+        are independent: groups / accounts >= COORDINATION_MAX_SHARE
+type vote and mostly_blank are also taken per independent group (one vote per group)
 ```
 
 ## Alerts (4)
@@ -399,3 +401,5 @@ An agent with no access to our harness wrote its own judge-style test suite from
 | Our scenario catalog (HTTP, 20 seeds each) | baseline | identical row for row |
 
 Still not caught, by design: 40 or 15 accounts that each invent a different believable story with proof (no text-only system can tell them from victims), and 12 victims who all report within 2 minutes with no proof (that is the bot-farm signature).
+
+A second blind evaluation (eval_blind2/REPORT.md) then found two more holes, both fixed and measured the same way: a scammer flooding its own number with fake accounts on scattered types (fixed by one type vote per independent group) and three tricks stacked on one shop (fixed by a per-group blank check and an independence condition on the rescue).

@@ -73,7 +73,7 @@ Open http://127.0.0.1:8000. The server starts with a valid licence (`licences/bo
 ### Checks
 
 ```bash
-uv run pytest -q          # 108 tests
+uv run pytest -q          # 110 tests
 uv run ruff check . && uv run ruff format --check . && uv run mypy app
 ```
 
@@ -156,7 +156,7 @@ We count **independent people, weighted by how much proof they gave**, not raw r
    - under 10% showed any harm: a screenshot, a stated loss, or the scam method named
    - fewer than half agree on the scam type (stages of one script, like a customs parcel call that turns into a digital arrest, count as one)
 
-   A pile-on is never "Known scam". This is how "40 friends reporting a real bakery" is stopped. If a scammer floods their own number with empty reports to trigger the check, we re-check using only the people who said something or showed harm.
+   A pile-on is never "Known scam". This is how "40 friends reporting a real bakery" is stopped. If a scammer floods their own number with empty reports to trigger the check, we re-check using only the people who said something or showed harm, and only if they are independent people (not accounts the engine already tied together). The type vote is one per independent group, so fake accounts merged into one voice cannot outvote the victims.
 
 **Verdict.**
 - A number is **Known scam** when there is no pile-on, at least **3 groups**, at least **2 of them described** what happened or showed proof, and the **score is 1.7 or more**.

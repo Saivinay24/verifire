@@ -158,7 +158,11 @@ def evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
     if not written:
         return full
     clean = _evaluate(written)
-    if not established(clean, C.KNOWN_MIN_SCORE):
+    # Real victims buried under a flood are independent people. If the ones left still collapse
+    # into a few shared groups (fake accounts, copied text), they are the brigade, not victims.
+    reporters = len({r.reporter_key for r in written})
+    independent = clean.groups / max(1, reporters) >= C.COORDINATION_MAX_SHARE
+    if not independent or not established(clean, C.KNOWN_MIN_SCORE):
         return full
     explain = {**clean.explain, "blank_set_aside": len(reports) - len(written)}
     return replace(clean, group_of=full.group_of, explain=explain)
@@ -326,10 +330,15 @@ def _evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
     weight_sum = sum(min(C.GROUP_CAP, w) for w in per_group.values())
 
     # How far the people agree on what the scam was (stages of one script count as one).
-    unit_types = Counter(
-        Counter(scam_family(r.scam_type) for r in it).most_common(1)[0][0] for it in units.values()
+    # One vote per independent group (as in the lookup's scam-type display): fake accounts already
+    # tied into one group cannot outvote the victims by scattering their types.
+    by_group: dict[str, list[ReportFacts]] = defaultdict(list)
+    for r in rs:
+        by_group[group_of[r.id]].append(r)
+    group_types = Counter(
+        Counter(scam_family(r.scam_type) for r in it).most_common(1)[0][0] for it in by_group.values()
     )
-    type_agreement = unit_types.most_common(1)[0][1] / len(units)
+    type_agreement = group_types.most_common(1)[0][1] / len(by_group)
     # Proof with no words (a screenshot or a loss tick) counts as saying something only when the
     # people agree on the scam; a pile-on ticking every box at random does not.
     proof_counts = type_agreement >= C.PROOF_MIN_TYPE_SHARE
@@ -383,7 +392,12 @@ def _evaluate(reports: Sequence[ReportFacts]) -> TrustResult:
         n_units = len(units)
         noted = [it for it in units.values() if any(_wrote(r) for r in it)]
         said = sum(unit_said(it) for it in units.values())
-        if 1 - said / n_units >= C.PILE_ON_BLANK_SHARE:
+        # Also per independent group: 60 accounts tied into 25 voices, 20 of them silent, is silent.
+        group_said = sum(unit_said(it) for it in by_group.values())
+        silent_groups = (
+            len(by_group) >= C.PILE_ON_MIN_UNITS and 1 - group_said / len(by_group) >= C.PILE_ON_BLANK_SHARE
+        )
+        if 1 - said / n_units >= C.PILE_ON_BLANK_SHARE or silent_groups:
             pile_on.append("mostly_blank")
         if (
             len(noted) >= C.PILE_ON_MIN_NOTES
