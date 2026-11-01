@@ -300,15 +300,15 @@ re-check every CACHE_SECONDS; save high_water every HIGH_WATER_EVERY
 
 ## How each step uses its parameters
 
-The engine takes every report about one number and decides whether real, independent people are behind them. This is the same 70, grouped by what they do in the code.
+The engine takes every report about one number and decides whether real, independent people are behind them. This is the same 72, grouped by what they do in the code.
 
 | Step | What it does | Parameters |
 |---|---|---|
 | 0. Rate limits | Stops floods at the door | 3 |
-| 1. Group | Who is secretly the same person? | 12 |
+| 1. Merge fakes | Who is secretly the same person? | 12 |
 | 2. Weigh | How much is each person worth? | 16 |
 | 3. Cap | One connection or one group cannot count as many | 3 |
-| 4. Crowd check | Does the wave look like real victims? | 23 |
+| 4. Does the crowd look real? | Does the wave look like real victims? | 23 |
 | 5. Pile-on gate | Do these people sound like victims at all? | 7 |
 | Verdict | KNOWN SCAM or not, and whether to unmask | 4 |
 | Alerts | Which reports may trigger area alerts | 4 |
@@ -321,50 +321,50 @@ The engine takes every report about one number and decides whether real, indepen
 - `RATE_WINDOW` = 1 hour. `RATE_SAME_IDENTIFIER` = 3: more than 3 reports on the same number per hour is refused. `RATE_PER_REPORTER` = 20: more than 20 reports per hour in total is refused.
 - **Why it helps:** the cheapest spam never reaches the engine. The brief requires it.
 
-### Step 1: Group (12)
+### Step 1: Merge reports from the same person (12)
 
-- **In:** every report on this number. **Out:** groups. Any one link merges two reports, and one group is one voice.
-- **Copied note:** `NOTE_DUP_SIMILARITY` = 0.7, `NOTE_DUP_MIN_CHARS` = 15. Notes 70% or more the same, both at least 15 characters, are one person. Catches 40 friends pasting one story; short notes like "fraud call" never link by chance.
-- **Account switch:** `SAME_CONNECTION_PAIR_WINDOW` = 15 min. A new account on the same connection within 15 minutes is the same person. Catches 10 friends with 2 accounts each.
-- **Account farm:** `SAME_CONNECTION_MIN_ACCOUNTS` = 3. Three or more accounts on one connection are one person. Catches 22 accounts on one Wi-Fi. Not 2, because 2 can be strangers on one mobile carrier.
-- **Lockstep burst:** `BURST_WINDOW` = 60 min, `BURST_MIN_REPORTS` = 8, `BURST_MIN_DIVERSITY` = 0.3. Eight or more reports in an hour where under 30% of the notes differ are one brigade. A report with a screenshot or a loss is always its own voice.
-- **Coordinated burst (5):** a burst where under 15% have proof (`COORD_MAX_EVIDENCE_SHARE`), plus one tell: 80% or more filed within 2 minutes of the claimed incident (`COORD_INSTANT_SHARE`, `COORD_INSTANT_LAG`), note lengths almost identical (`COORD_UNIFORM_CV` = 0.05), or no scam type covering half the burst (`COORD_SCATTER_SHARE` = 0.5). Catches bots and AI-written brigades.
+- **In:** every report on this number. **Out:** groups, where each group is treated as one real person. Any one of the five checks below is enough to merge two reports.
+- **Same story pasted by many accounts** (code name copied_note): `NOTE_DUP_SIMILARITY` = 0.7, `NOTE_DUP_MIN_CHARS` = 15. Notes 70% or more the same, both at least 15 characters, are one person. Catches 40 friends pasting one story; short notes like "fraud call" never link by chance.
+- **One person logging in with a second account** (account_switch): `SAME_CONNECTION_PAIR_WINDOW` = 15 min. A new account on the same connection within 15 minutes is the same person. Catches 10 friends with 2 accounts each.
+- **Many accounts on one Wi-Fi** (same_connection): `SAME_CONNECTION_MIN_ACCOUNTS` = 3. Three or more accounts on one connection are one person. Catches 22 accounts on one Wi-Fi. Not 2, because 2 can be strangers on one mobile carrier.
+- **Same few notes repeated in one hour** (lockstep_burst): `BURST_WINDOW` = 60 min, `BURST_MIN_REPORTS` = 8, `BURST_MIN_DIVERSITY` = 0.3. Eight or more reports in an hour where under 30% of the notes differ are one brigade. A report with a screenshot or a loss is always its own voice.
+- **Bot-like rush with no proof** (coordinated, 5 parameters): a burst where under 15% have proof (`COORD_MAX_EVIDENCE_SHARE`), plus one tell: 80% or more filed within 2 minutes of the claimed incident (`COORD_INSTANT_SHARE`, `COORD_INSTANT_LAG`), note lengths almost identical (`COORD_UNIFORM_CV` = 0.05), or no scam type covering half the burst (`COORD_SCATTER_SHARE` = 0.5). Catches bots and AI-written brigades.
 - **Why it helps:** fakes that look separate are merged: 22 to 1, 40 to 1, 20 to 1.
 
-### Step 2: Weigh each person (16)
+### Step 2: How much each person counts (16)
 
 - **In:** each group. **Out:** a weight from 0.05 to 1.3.
-- **Note quality:** `NOTE_SHORT_CHARS` = 10, `NOTE_FULL_CHARS` = 25, `NOTE_WEIGHT_EMPTY` = 0.5, `NOTE_WEIGHT_SHORT` = 0.8. Blank 0.5, short 0.8, a real sentence 1.0. The brief says a personal description counts more.
-- **Novelty:** `NOTE_NOVELTY_PENALTY` = 0.85, `NOTE_NOVELTY_FREE` = 0.4, `NOTE_NOVELTY_FLOOR` = 0.3. A note that resembles earlier ones loses value. Similarity under 0.4 is free, because real victims of one script share phrases. Never below 0.3.
-- **Proof bonus:** `EVIDENCE_SCREENSHOT` = 0.15, `EVIDENCE_LOSS` = 0.15, `EVIDENCE_LEXICON` = 0.10, `EVIDENCE_CAP` = 1.3. Screenshot +15%, money lost +15%, scam words (OTP, KYC) +10%, at most +30%.
-- **Spam penalties:** `REPEAT_DAMPING` = 0.30 (6 reports by one person: divided by 2.5). `VELOCITY_FREE_PER_HOUR` = 3 and `VELOCITY_DAMPING` = 0.25 (above 3 reports an hour, weight drops). `VERIFIED_REPORTER_FACTOR` = 0.5 (anyone who also reported a verified bank number counts half).
-- **Floor:** `UNIT_WEIGHT_MIN` = 0.05.
+- **How much they wrote:** `NOTE_SHORT_CHARS` = 10, `NOTE_FULL_CHARS` = 25, `NOTE_WEIGHT_EMPTY` = 0.5, `NOTE_WEIGHT_SHORT` = 0.8. Blank 0.5, short 0.8, a real sentence 1.0. The brief says a personal description counts more.
+- **Repeating someone else's words:** `NOTE_NOVELTY_PENALTY` = 0.85, `NOTE_NOVELTY_FREE` = 0.4, `NOTE_NOVELTY_FLOOR` = 0.3. A note that resembles earlier ones loses value. Similarity under 0.4 is free, because real victims of one script share phrases. Never below 0.3.
+- **Extra credit for proof:** `EVIDENCE_SCREENSHOT` = 0.15, `EVIDENCE_LOSS` = 0.15, `EVIDENCE_LEXICON` = 0.10, `EVIDENCE_CAP` = 1.3. Screenshot +15%, money lost +15%, scam words (OTP, KYC) +10%, at most +30%.
+- **Penalty for reporting again and again:** `REPEAT_DAMPING` = 0.30 (6 reports by one person: divided by 2.5). `VELOCITY_FREE_PER_HOUR` = 3 and `VELOCITY_DAMPING` = 0.25 (above 3 reports an hour, weight drops). `VERIFIED_REPORTER_FACTOR` = 0.5 (anyone who also reported a verified bank number counts half).
+- **Lowest possible weight:** `UNIT_WEIGHT_MIN` = 0.05.
 - **Why it helps:** a real victim with proof counts more than a blank click, and spamming only lowers your own weight.
 
-### Step 3: Cap (3)
+### Step 3: Limits per Wi-Fi and per group (3)
 
 - **In:** the weights. **Out:** the capped weight sum.
 - `IP_CAP_SLOPE` = 0.15, `IP_CAP_MAX` = 1.25: everyone on one connection together is worth at most `1 + 0.15 ln n`, never above 1.25. A family of 2 on one Wi-Fi counts 1.104; a farm of 22 counts 1.25.
 - `GROUP_CAP` = 1.3: a group is worth at most one fully proven person.
 - **Why it helps:** volume from one place cannot add up to many people, but a real family is not wiped out.
 
-### Step 4: Crowd check (23)
+### Step 4: Does the crowd look like real victims? (23)
 
 - Runs only with 4 or more groups (`CAMPAIGN_MIN_GROUPS`). **In:** the whole wave. **Out:** one factor, clipped between `CAMPAIGN_FLOOR` = 0.2 and `CAMPAIGN_CEIL` = 1.1, that multiplies the score.
 
 | Check | Parameters | Fires when | Effect |
 |---|---|---|---|
-| Speed | `BURST_RATE_FREE` 0.5/min, `BURST_RATE_DAMPING` 0.6 | Faster than 0.5 reports a minute | 40 in 20 min gives 0.526 |
-| Coordination | 8, 0.5, 0.5 | A fast wave where most people collapsed into shared groups | x 0.5 |
-| Blank notes | 8, 0.5, 0.4 | 8+ people and over half wrote nothing | x 0.4 |
-| One area | 8, 0.8, 2, 0.7 | 80%+ from 2 pincodes or fewer, arriving fast | x 0.7 |
-| Evidence | `EVIDENCE_FACTOR_BASE` 0.85, `EVIDENCE_FACTOR_SLOPE` 0.25 | Always | 0.85 with no proof, up to 1.10 with full proof |
-| Back-dating | 20 min, 4x, 0.7 | Filed within about 20 min but claiming incidents spread 4x wider | x 0.7 |
-| Same-length notes | 8, 0.06, 0.8 | Note lengths as even as machine text | x 0.8 |
+| Reports arriving too fast | `BURST_RATE_FREE` 0.5/min, `BURST_RATE_DAMPING` 0.6 | Faster than 0.5 reports a minute | 40 in 20 min gives 0.526 |
+| Most people turned out to be the same person | 8, 0.5, 0.5 | A fast wave where most people collapsed into shared groups | x 0.5 |
+| Mostly empty reports | 8, 0.5, 0.5 | 8+ people and over half wrote nothing | x 0.5 |
+| All from one small area | 8, 0.8, 2, 0.7 | 80%+ from 2 pincodes or fewer, arriving fast | x 0.7 |
+| How much proof the crowd has | `EVIDENCE_FACTOR_BASE` 0.85, `EVIDENCE_FACTOR_SLOPE` 0.25 | Always | 0.85 with no proof, up to 1.10 with full proof |
+| Filed together, dates spread out (back-dated) | 20 min, 4x, 0.7 | Filed within about 20 min but claiming incidents spread 4x wider | x 0.7 |
+| Notes all the same length, like machine text | 8, 0.06, 0.8 | Note lengths as even as machine text | x 0.8 |
 
 - **Why it helps:** real victims trickle in over hours, from many places, with proof; brigades do not. The 0.2 to 1.1 bounds mean no single check decides the verdict.
 
-### Step 5: Pile-on gate (7)
+### Step 5: Pile-on check: are these really victims? (7)
 
 - Judged only with 8 or more people (`PILE_ON_MIN_UNITS`). **In:** the groups and their notes. **Out:** pile-on yes or no. Yes means never KNOWN SCAM.
 - `PILE_ON_BLANK_SHARE` = 0.75: 75% or more said nothing (real victims leave about 25% blank). A screenshot or a stated loss counts as saying something when 75% or more agree on the type (`PROOF_MIN_TYPE_SHARE`).
