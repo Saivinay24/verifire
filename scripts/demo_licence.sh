@@ -7,6 +7,7 @@
 #
 # Always ends by uploading the long licence, so the server is never left locked.
 set -euo pipefail
+cd "$(dirname "$0")/.."  # works from any folder: paths below are relative to the repo root
 B=${B:-https://scammap-huii.onrender.com}
 MIN=${MIN:-5}
 LONG=licences/demo-bank-long.json
