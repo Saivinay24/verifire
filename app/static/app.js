@@ -1024,7 +1024,10 @@ function setPull(state) {
   $("#pullHandle").setAttribute("aria-expanded", String(state === "full"));
 }
 let drag = null;
+// On a laptop the city sheet is a fixed side panel: nothing to drag.
+const wide = matchMedia("(min-width: 900px)");
 $("#pullHead").addEventListener("pointerdown", (e) => {
+  if (wide.matches) return;
   drag = { y: e.clientY, h: pull.getBoundingClientRect().height, moved: false, id: e.pointerId };
   $("#pullHead").setPointerCapture(e.pointerId);
 });
@@ -1161,6 +1164,8 @@ async function drawMap(city, a) {
     if (!map) {
       // Zoom stops at neighbourhood level (15): the map is about areas, never streets or houses.
       map = L.map("map", { zoomControl: false, attributionControl: true, minZoom: 9, maxZoom: 15 });
+      // Laptops have no pinch: give them zoom buttons.
+      if (wide.matches) L.control.zoom({ position: "bottomright" }).addTo(map);
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 15, attribution: "© OpenStreetMap" }).addTo(map);
       map.setView([a.lat, a.lng], 12);
     }
@@ -1201,17 +1206,22 @@ async function drawMap(city, a) {
       defs.innerHTML = grads.join(""); renderer._container.prepend(defs);
     }
     L.circleMarker([a.lat, a.lng], { radius: 7, color: "#2F5BEA", weight: 3, fillColor: "#fff", fillOpacity: 1, pane: "markerPane" }).addTo(layer);
-    // Keep every point above the sheet: pad the bottom by the sheet's height.
-    const bottom = pull.getBoundingClientRect().height + 16;
-    if (pts.length > 1) map.fitBounds(pts, { paddingTopLeft: [24, 80], paddingBottomRight: [24, bottom], maxZoom: 14 });
+    // Keep every point clear of the sheet: below it on a phone, beside it on a laptop.
+    if (pts.length > 1) map.fitBounds(pts, { ...mapPad(), maxZoom: 14 });
     else map.setView([a.lat, a.lng], 13);
   } catch { /* map tiles are a bonus; the sheet already has everything */ }
+}
+function mapPad(bottom) {
+  if (wide.matches) {
+    const r = pull.getBoundingClientRect();
+    return { paddingTopLeft: [r.right + 24, 80], paddingBottomRight: [24, 24] };
+  }
+  return { paddingTopLeft: [24, 80], paddingBottomRight: [24, bottom ?? pull.getBoundingClientRect().height + 16] };
 }
 function focusArea(x) {
   setPull("peek");
   if (!map) return;
-  const bottom = innerHeight * 0.46;
-  map.flyToBounds([[x.lat, x.lng]], { paddingTopLeft: [24, 80], paddingBottomRight: [24, bottom], maxZoom: 14, duration: 0.6 });
+  map.flyToBounds([[x.lat, x.lng]], { ...mapPad(innerHeight * 0.46), maxZoom: 14, duration: 0.6 });
   markers[x.pincode]?.openTooltip();
 }
 

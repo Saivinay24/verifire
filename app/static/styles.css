@@ -596,3 +596,90 @@ div.msg-id { cursor: default; }
 .rl-proof { display: flex; flex-wrap: wrap; gap: 6px; }
 .rl-proof:not(:empty) { margin-top: 6px; }
 .rl-tag { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: var(--r-pill); background: rgba(20, 34, 51, 0.06); color: var(--ink-2); }
+
+/* ---------- Laptop and desktop (900px and wider) ----------
+   Same order and the same jobs as the phone, moved for a mouse and a big screen:
+   - Home: the bar spans the window; check, then report / near me, sit together in the middle,
+     because there is no thumb zone to hold the actions at the bottom.
+   - Sheets that rise from the bottom on a phone open as centred cards.
+   - Map: the city sheet becomes a side panel on the left, the map fills the rest.
+   - Stats and Explore use the width: cards side by side instead of one long column. */
+@media (min-width: 900px) {
+  :root { --gutter: 32px; }
+
+  /* Home */
+  .home { max-width: 1180px; padding-top: 20px; }
+  .home > :not(.topbar) { width: 100%; max-width: 680px; margin-inline: auto; }
+  .topbar { height: 52px; }
+  .greeting { margin-top: auto; margin-bottom: 28px; padding-top: 48px; }
+  .greeting h1 { font-size: 60px; max-width: none; }
+  .greeting p { font-size: 19px; max-width: 40ch; }
+  .composer { --h: 72px; padding-left: 26px; }
+  .composer input { font-size: 18px; }
+  .fineprint { font-size: 13px; }
+  .dock { position: static; margin-top: 34px; margin-bottom: auto; padding: 0 0 64px; }
+  .actions { max-width: 520px; }
+  .actions .action { height: 54px; font-size: 16px; }
+
+  /* Bottom sheets become centred cards */
+  .sheet {
+    top: 50%; bottom: auto; width: min(600px, calc(100vw - 64px)); max-height: min(86dvh, 820px);
+    transform: translate(-50%, -50%); border-radius: var(--r-sheet); border-bottom: 1px solid var(--glass-edge);
+    padding: 22px 28px 26px; animation: pop .28s var(--ease);
+  }
+  .sheet > .grabber { display: none; }
+  .sheet h2 { margin-top: 0; }
+  #areaSheet { min-height: 0; height: min(86dvh, 760px); }
+  @keyframes pop { from { transform: translate(-50%, -48%) scale(0.98); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+  .toast { bottom: 32px; }
+
+  /* Full-screen flows: a little more air at the top */
+  .flow { padding-top: 24px; background: rgba(245, 245, 244, 0.985); }
+  .step-title { font-size: 34px; margin-top: 28px; }
+
+  /* Stats: a dashboard, not a scroll */
+  #statsView { display: grid; grid-template-columns: repeat(3, minmax(0, 352px)); gap: 14px;
+               align-content: start; justify-content: center; }
+  #statsView > * { grid-column: 1 / -1; width: 100%; max-width: 1084px; margin: 0 auto; }
+  #statsView > .chart-card { margin: 0; }
+  #statsView > .chart-card:has(#statTypes),
+  #statsView > .chart-card:has(#statChannels),
+  #statsView > .chart-card:has(#statCities) { grid-column: auto; max-width: none; }
+  #statsView .step-title, #statsView .step-sub { margin-left: 0; margin-right: 0; }
+  #statsView .step-sub { margin-bottom: 4px; }
+  .kpis { grid-template-columns: repeat(4, 1fr); margin-top: 0; }
+  .official-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  /* Explore: the two tools side by side */
+  #exploreView { display: grid; grid-template-columns: repeat(2, minmax(0, 520px)); gap: 16px;
+                 align-content: start; justify-content: center; }
+  #exploreView > * { grid-column: 1 / -1; width: 100%; max-width: 1056px; margin: 0 auto; }
+  #exploreView > .ex-card { grid-column: auto; max-width: none; margin: 0; align-self: start; }
+  #exploreView .step-title, #exploreView .step-sub { margin-left: 0; margin-right: 0; }
+  #exploreView .ex-trends { width: auto; margin: 8px auto 24px; }
+
+  /* Map: the city sheet is a panel on the left, the map fills the rest */
+  .pull, .pull[data-state="full"] {
+    left: 16px; top: 16px; bottom: 16px; transform: none; width: 420px; height: auto;
+    border-radius: var(--r-sheet); border-bottom: 1px solid var(--glass-edge);
+    box-shadow: 0 18px 44px -18px rgba(28, 48, 82, 0.35);
+  }
+  .pull-head { cursor: default; touch-action: auto; padding-top: 68px; }
+  .pull-handle { display: none; }
+  .map-top { z-index: 4; left: 0; padding-left: 32px; width: 420px; padding-top: 28px; }
+  .map-top .map-near { margin-left: auto; }
+  .heat-legend { left: 460px; top: 28px; }
+  .leaflet-bottomright .leaflet-control-zoom { margin: 0 20px 24px 0; border: 0; box-shadow: var(--glass-shadow); border-radius: 14px; overflow: hidden; }
+  .leaflet-control-zoom a { width: 38px; height: 38px; line-height: 38px; font-size: 20px; color: var(--ink); }
+
+  /* A mouse gets hover feedback; a finger never sees it */
+  @media (hover: hover) {
+    .action-report:hover, .pill-strong:hover { background: #22344A; }
+    .action-near:hover, .pill:not(.pill-strong):not(.pill-accent):hover, .chip-btn:hover { background: rgba(255, 255, 255, 0.92); }
+    .send:not(:disabled):hover, .primary:not(:disabled):hover, .pill-accent:not(:disabled):hover { filter: brightness(1.08); }
+    .icon-btn:hover { background: rgba(20, 34, 51, 0.06); }
+    button.row:hover, .msg-id:hover, .area-list button:hover, .see-all:hover { background: #fff; }
+    .tile:hover { border-color: rgba(47, 91, 234, 0.3); }
+    .segmented button:not([aria-checked="true"]):hover { color: var(--ink); }
+  }
+}
