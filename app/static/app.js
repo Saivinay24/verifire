@@ -862,13 +862,14 @@ $("#reportForm").addEventListener("submit", async (e) => {
 // transcribing (Google's service in Chrome), so we never claim "nothing leaves the phone".
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null;
+let micUserStopped = false;   // true only when the person taps "Stop"
 $("#micBtn").hidden = !Recognition;
 function setNoteOpen(open) {
   $("#noteBody").hidden = !open; $("#noteToggle").setAttribute("aria-expanded", String(open));
   if (open) $("#reportNote").focus({ preventScroll: true });
 }
 $("#noteToggle").addEventListener("click", () => setNoteOpen($("#noteBody").hidden));
-function stopListening() { if (rec) { try { rec.stop(); } catch { /* already stopped */ } } }
+function stopListening() { micUserStopped = true; if (rec) { try { rec.stop(); } catch { /* already stopped */ } } }
 function showListening(on) {
   const b = $("#micBtn"); b.setAttribute("aria-pressed", String(on));
   b.querySelector("span").textContent = t(on ? "listening" : "say_it"); $("#micHint").hidden = !on;
@@ -878,19 +879,39 @@ $("#micBtn").addEventListener("click", () => {
   setNoteOpen(true);
   const box = $("#reportNote"), before = box.value.trim();
   rec = new Recognition();
-  // One phrase per tap. Continuous mode on Android Chrome repeats earlier words in every result,
-  // so the note filled with duplicates; tapping again adds the next phrase after the first.
-  rec.lang = lang === "hi" ? "hi-IN" : "en-IN"; rec.interimResults = true; rec.continuous = false;
+  // Continuous mode: keeps listening until the user taps "Stop".  We accumulate only
+  // final results so Android Chrome's repeated-prefix quirk can't cause duplicates.
+  rec.lang = lang === "hi" ? "hi-IN" : "en-IN"; rec.interimResults = true; rec.continuous = true;
+  let committed = before;   // text confirmed so far (final results appended here)
+  let lastInterim = "";     // latest interim preview (not yet committed)
+  micUserStopped = false;
   rec.onresult = (e) => {
-    const said = e.results[e.results.length - 1][0].transcript.trim();
-    box.value = ((before ? before + " " : "") + said).slice(0, 600);
+    let finals = "", interim = "";
+    for (let i = 0; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) finals += r[0].transcript;
+      else           interim = r[0].transcript;
+    }
+    if (finals) {
+      const trimmed = finals.trim();
+      if (trimmed) committed = (committed ? committed + " " : "") + trimmed;
+    }
+    lastInterim = interim.trim();
+    box.value = ((committed || "") + (lastInterim ? (committed ? " " : "") + lastInterim : "")).slice(0, 600);
   };
   rec.onerror = (e) => {
     const msg = { "not-allowed": "mic_denied", "audio-capture": "mic_none", "service-not-allowed": "mic_unavailable",
       network: "mic_unavailable", "language-not-supported": "mic_unavailable", "no-speech": "mic_silent" }[e.error];
     if (e.error !== "aborted") toast(t(msg || "mic_fail"));
   };
-  rec.onend = () => { rec = null; showListening(false); };
+  // If the browser fires onend on its own (silence timeout, etc.), restart transparently.
+  // It only truly stops when the user taps "Stop".
+  rec.onend = () => {
+    if (!micUserStopped && rec) {
+      try { rec.start(); return; } catch { /* fall through to cleanup */ }
+    }
+    rec = null; showListening(false);
+  };
   try { rec.start(); showListening(true); } catch { rec = null; toast(t("mic_fail")); }
 });
 
