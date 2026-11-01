@@ -88,7 +88,7 @@ const T = {
     newtype: (a, t) => `New scam near ${a}: ${t}.`,
     reports_n: (n) => `${n} ${n === 1 ? "report" : "reports"}`,
     this_hour: "In the last hour", ago_min: (n) => `${n} min ago`, ago_h: (n) => `${n} h ago`, ago_d: (n) => `${n} d ago`,
-    say_it: "Say it", listening: "Listening. Tap to stop", mic_hint: "Listening. Say one sentence in English or Hindi, then tap Say it again to add more. Don't say your name or number.",
+    say_it: "Say it", listening: "Listening. Tap to stop", mic_hint: "Listening in English or Hindi. Pauses are fine. Tap the button again to stop. Don't say your name or number.",
     mic_denied: "Microphone is blocked. Allow it for this site in your browser settings, or use your keyboard's mic key.",
     mic_none: "No microphone found. Check your phone or computer allows the browser to use it.",
     mic_unavailable: "Voice typing isn't available in this browser. Use the mic key on your keyboard instead.",
@@ -227,7 +227,7 @@ const T = {
     newtype: (a, t) => `${a} के पास नया स्कैम: ${t}।`,
     reports_n: (n) => `${n} रिपोर्ट`,
     this_hour: "पिछले एक घंटे में", ago_min: (n) => `${n} मिनट पहले`, ago_h: (n) => `${n} घंटे पहले`, ago_d: (n) => `${n} दिन पहले`,
-    say_it: "बोलकर बताएं", listening: "सुन रहे हैं। रोकने के लिए दबाएं", mic_hint: "सुन रहे हैं। हिंदी या अंग्रेज़ी में एक वाक्य बोलें, और जोड़ने के लिए फिर से दबाएं। अपना नाम या नंबर न बोलें।",
+    say_it: "बोलकर बताएं", listening: "सुन रहे हैं। रोकने के लिए दबाएं", mic_hint: "हिंदी या अंग्रेज़ी में बोलें। बीच में रुकना ठीक है। रोकने के लिए बटन फिर से दबाएं। अपना नाम या नंबर न बोलें।",
     mic_denied: "माइक्रोफ़ोन बंद है। ब्राउज़र सेटिंग में इस साइट के लिए अनुमति दें, या कीबोर्ड का माइक बटन इस्तेमाल करें।",
     mic_none: "माइक्रोफ़ोन नहीं मिला। देखें कि फ़ोन या कंप्यूटर ब्राउज़र को माइक की अनुमति देता है।",
     mic_unavailable: "इस ब्राउज़र में बोलकर लिखना नहीं चलता। कीबोर्ड का माइक बटन इस्तेमाल करें।",
@@ -861,58 +861,61 @@ $("#reportForm").addEventListener("submit", async (e) => {
 // sending. We never receive audio. On Android Chrome the phone's speech service does the
 // transcribing (Google's service in Chrome), so we never claim "nothing leaves the phone".
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+// Tap once to start, tap again to stop. Nothing else stops it: when the browser ends a phrase
+// on a pause, a fresh one-phrase session starts at once. One phrase per session is the mode
+// that works on Android Chrome (continuous mode repeats earlier words) and in Hindi.
 let rec = null;
-let micUserStopped = false;   // true only when the person taps "Stop"
+let listening = false;        // the person's intent: true from the first tap until the stop tap
+let micText = "";             // what the note held plus every finished phrase
 $("#micBtn").hidden = !Recognition;
 function setNoteOpen(open) {
   $("#noteBody").hidden = !open; $("#noteToggle").setAttribute("aria-expanded", String(open));
   if (open) $("#reportNote").focus({ preventScroll: true });
 }
 $("#noteToggle").addEventListener("click", () => setNoteOpen($("#noteBody").hidden));
-function stopListening() { micUserStopped = true; if (rec) { try { rec.stop(); } catch { /* already stopped */ } } }
 function showListening(on) {
   const b = $("#micBtn"); b.setAttribute("aria-pressed", String(on));
   b.querySelector("span").textContent = t(on ? "listening" : "say_it"); $("#micHint").hidden = !on;
 }
-$("#micBtn").addEventListener("click", () => {
-  if (rec) { stopListening(); return; }
-  setNoteOpen(true);
-  const box = $("#reportNote"), before = box.value.trim();
-  rec = new Recognition();
-  // Continuous mode: keeps listening until the user taps "Stop".  We accumulate only
-  // final results so Android Chrome's repeated-prefix quirk can't cause duplicates.
-  rec.lang = lang === "hi" ? "hi-IN" : "en-IN"; rec.interimResults = true; rec.continuous = true;
-  let committed = before;   // text confirmed so far (final results appended here)
-  let lastInterim = "";     // latest interim preview (not yet committed)
-  micUserStopped = false;
-  rec.onresult = (e) => {
-    let finals = "", interim = "";
-    for (let i = 0; i < e.results.length; i++) {
-      const r = e.results[i];
-      if (r.isFinal) finals += r[0].transcript;
-      else           interim = r[0].transcript;
-    }
-    if (finals) {
-      const trimmed = finals.trim();
-      if (trimmed) committed = (committed ? committed + " " : "") + trimmed;
-    }
-    lastInterim = interim.trim();
-    box.value = ((committed || "") + (lastInterim ? (committed ? " " : "") + lastInterim : "")).slice(0, 600);
+function stopListening() {
+  if (!listening) return;
+  listening = false; showListening(false);          // the button answers the tap at once
+  const r = rec; rec = null;
+  if (r) { try { r.stop(); } catch { /* already stopped */ } }
+}
+function listenOnce() {
+  if (!listening) return;
+  const box = $("#reportNote"), r = new Recognition();
+  rec = r;
+  r.lang = lang === "hi" ? "hi-IN" : "en-IN"; r.interimResults = true; r.continuous = false;
+  let heard = "";
+  r.onresult = (e) => {
+    const res = e.results[e.results.length - 1];
+    heard = res[0].transcript.trim();
+    if (res.isFinal && heard) { micText = (micText ? micText + " " : "") + heard; heard = ""; }
+    box.value = (micText + (heard ? (micText ? " " : "") + heard : "")).slice(0, 600);
   };
-  rec.onerror = (e) => {
+  r.onerror = (e) => {
+    // A pause with no speech is normal here: the next session simply starts.
+    if (e.error === "no-speech" || e.error === "aborted") return;
     const msg = { "not-allowed": "mic_denied", "audio-capture": "mic_none", "service-not-allowed": "mic_unavailable",
-      network: "mic_unavailable", "language-not-supported": "mic_unavailable", "no-speech": "mic_silent" }[e.error];
-    if (e.error !== "aborted") toast(t(msg || "mic_fail"));
+      network: "mic_unavailable", "language-not-supported": "mic_unavailable" }[e.error];
+    toast(t(msg || "mic_fail")); stopListening();
   };
-  // If the browser fires onend on its own (silence timeout, etc.), restart transparently.
-  // It only truly stops when the user taps "Stop".
-  rec.onend = () => {
-    if (!micUserStopped && rec) {
-      try { rec.start(); return; } catch { /* fall through to cleanup */ }
-    }
-    rec = null; showListening(false);
+  r.onend = () => {
+    // Keep a phrase that was cut off before it became final.
+    if (heard) { micText = (micText ? micText + " " : "") + heard; heard = ""; box.value = micText.slice(0, 600); }
+    if (rec === r) rec = null;
+    if (listening) setTimeout(listenOnce, 150);
   };
-  try { rec.start(); showListening(true); } catch { rec = null; toast(t("mic_fail")); }
+  try { r.start(); } catch { rec = null; toast(t("mic_fail")); stopListening(); }
+}
+$("#micBtn").addEventListener("click", () => {
+  if (listening) { stopListening(); return; }
+  setNoteOpen(true);
+  micText = $("#reportNote").value.trim();
+  listening = true; showListening(true);
+  listenOnce();
 });
 
 // ---------------- Prepare my complaint ----------------
